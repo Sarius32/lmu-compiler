@@ -13,14 +13,14 @@ class AbstractMachine:
         # init translation of instructions
         self._instr_dict = {
             "RST": self._reset,
-            "LOD": ...,
-            "STO": ...,
+            "LOD": self._load,
+            "STO": self._store_,
             "INC": self._inc,
             "LIT": self._literal,
             "JMP": self._jump,
             "JOT": self._jump_on_true,
             "JOF": self._jump_on_false,
-            "CAL": ...,
+            "CAL": self._call,
             "RET": self._return,
             "OPR": self._operator,
             "REA": self._read,
@@ -41,11 +41,9 @@ class AbstractMachine:
         self._code = []
 
         for row, line in enumerate(code):
-            line = line.strip()
-            if line == "":
-                continue
+            row += 1  # 1-indexed
 
-            instr_tuple = line.split(" ")
+            instr_tuple = line.split("#")[0].strip().split(" ")
             if len(instr_tuple) > 3:
                 print(f"Malformed code found in OBJECT code at")
                 print(f"    line {str(row).rjust(4)}:    {line}")
@@ -61,7 +59,7 @@ class AbstractMachine:
 
             if instr_func is None:
                 self._code.append(None)
-                if row != len(code) - 1:
+                if row != len(code):  # row now 1-indexed
                     print(f"Instruction 'HLT' found before EOF in OBJECT code at")
                     print(f"    line {str(row).rjust(4)}:    {line}")
                     exit(-1)
@@ -111,12 +109,26 @@ class AbstractMachine:
 
             self._code.append((instr_func, conv_args))
 
+    def _base(self, s: int) -> int:
+        A = self.B
+        for _ in range(s):
+            A = self._store[A + 2]
+        return A
+
     def _reset(self):
         self.B = 0
         self._store[self.B + 0] = 0
         self._store[self.B + 1] = 0
         self._store[self.B + 2] = 0
         self.T = self.B + 2
+
+    def _load(self, s: int, i: int):
+        self.T += 1
+        self._store[self.T] = self._store[self._base(s) + i]
+
+    def _store_(self, s: int, i: int):
+        self._store[self._base(s) + i] = self._store[self.T]
+        self.T = self.T - 1
 
     def _inc(self, i: int):
         self.T += i
@@ -137,6 +149,15 @@ class AbstractMachine:
         if self._store[self.T] == False:
             self.P = a
         self.T -= 1
+
+    def _call(self, s: int, a: int):
+        self.T += 1
+        self._store[self.T] = self.B
+        self._store[self.T + 1] = self.P
+        self._store[self.T + 2] = self._base(s)
+        self.B = self.T
+        self.T = self.B + 2
+        self.P = a
 
     def _return(self):
         self.P = self._store[self.B + 1]
@@ -159,7 +180,7 @@ class AbstractMachine:
 
     def _read(self):
         self.T += 1
-        self._store[self.T] = input()
+        self._store[self.T] = int(input())
 
     def _write(self):
         print(self._store[self.T])
