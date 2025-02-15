@@ -1,3 +1,5 @@
+from typing import Literal, get_origin, get_args
+from typing import get_args as get_literal_args
 from inspect import get_annotations as get_expect_args
 
 
@@ -14,15 +16,15 @@ class AbstractMachine:
             "LOD": ...,
             "STO": ...,
             "INC": self._inc,
-            "LIT": ...,
-            "JMP": ...,
-            "JOT": ...,
-            "JOF": ...,
+            "LIT": self._literal,
+            "JMP": self._jump,
+            "JOT": self._jump_on_true,
+            "JOF": self._jump_on_false,
             "CAL": ...,
-            "RET": ...,
-            "OPR": ...,
-            "REA": ...,
-            "WRI": ...,
+            "RET": self._return,
+            "OPR": self._operator,
+            "REA": self._read,
+            "WRI": self._write,
             "HLT": None
         }
 
@@ -36,7 +38,7 @@ class AbstractMachine:
         self._convert_to_exec(code)
 
     def _convert_to_exec(self, code: list[str]):
-        self.code = []
+        self._code = []
 
         for row, line in enumerate(code):
             line = line.strip()
@@ -58,7 +60,7 @@ class AbstractMachine:
                 exit(-1)
 
             if instr_func is None:
-                self.code.append(None)
+                self._code.append(None)
                 if row != len(code) - 1:
                     print(f"Instruction 'HLT' found before EOF in OBJECT code at")
                     print(f"    line {str(row).rjust(4)}:    {line}")
@@ -85,7 +87,7 @@ class AbstractMachine:
             conv_args = []
             for idx, (arg, type_to_be) in enumerate(zip(args, arg_types)):
                 # type is just one type
-                if type(type_to_be) == type:
+                if type(type_to_be) is type:
                     try:
                         conv_args.append(type_to_be(arg))
                     except ValueError:
@@ -96,29 +98,81 @@ class AbstractMachine:
                         print(f"               {" " * space_len}‾‾‾{"^" * len(arg)}‾‾‾")
                         exit(-1)
                 # type is something like ["<", ">", ...]
-                else:
-                    ...  # TODO
+                elif get_origin(type_to_be) is Literal:
+                    if arg in get_literal_args(type_to_be):
+                        conv_args.append(arg)
+                    else:
+                        print(
+                            f"Unexpected Literal '{arg}' for instruction '{instr}' found in OBJECT code at")
+                        print(f"    line {str(row).rjust(4)}:    {line}")
+                        space_len = len(instr) + 1 + ((len(args[0]) + 1) if idx == 1 else 0)
+                        print(f"               {" " * space_len}‾‾‾{"^" * len(arg)}‾‾‾")
+                        exit(-1)
 
-            self.code.append((instr_func, conv_args))
+            self._code.append((instr_func, conv_args))
 
     def _reset(self):
         self.B = 0
         self._store[self.B + 0] = 0
         self._store[self.B + 1] = 0
         self._store[self.B + 2] = 0
-        self.T = self.B+2
+        self.T = self.B + 2
 
     def _inc(self, i: int):
         self.T += i
 
+    def _literal(self, n: int):
+        self.T += 1
+        self._store[self.T] = n
+
+    def _jump(self, a: int):
+        self.P = a
+
+    def _jump_on_true(self, a: int):
+        if self._store[self.T] == True:
+            self.P = a
+        self.T -= 1
+
+    def _jump_on_false(self, a: int):
+        if self._store[self.T] == False:
+            self.P = a
+        self.T -= 1
+
+    def _return(self):
+        self.P = self._store[self.B + 1]
+        self.T = self.B - 1
+        self.B = self._store[self.B]
+
+    def _operator(self, op: Literal["!", "=", "<", ">", "+", "-", "*", "/"]):
+        if op == "!":
+            self._store[self.T] = not self._store[self.T]
+            return
+
+        if op == "=": self._store[self.T - 1] = self._store[self.T - 1] == self._store[self.T]
+        if op == "<": self._store[self.T - 1] = self._store[self.T - 1] < self._store[self.T]
+        if op == ">": self._store[self.T - 1] = self._store[self.T - 1] > self._store[self.T]
+        if op == "+": self._store[self.T - 1] = self._store[self.T - 1] + self._store[self.T]
+        if op == "-": self._store[self.T - 1] = self._store[self.T - 1] - self._store[self.T]
+        if op == "*": self._store[self.T - 1] = self._store[self.T - 1] * self._store[self.T]
+        if op == "/": self._store[self.T - 1] = self._store[self.T - 1] / self._store[self.T]
+        self.T -= 1
+
+    def _read(self):
+        self.T += 1
+        self._store[self.T] = input()
+
+    def _write(self):
+        print(self._store[self.T])
+        self.T -= 1
+
     def run(self):
-        i = self.code[self.P]
+        i = self._code[self.P]
 
         while i is not None:
             self.P += 1
             instruction, args = i
             instruction(*args)
-            i = self.code[self.P]
+            i = self._code[self.P]
 
 
 if __name__ == "__main__":
