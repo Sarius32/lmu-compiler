@@ -1,7 +1,0 @@
-class Test {
-    function data {
-        int a2 = 1;
-        int x = 110;
-        int a = x + 1;
-    }
-}
