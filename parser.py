@@ -131,80 +131,98 @@ class Parser:
         self.ebnf_dict = ebnf_dict
         self.root = ParseTreeNode(start_token, None)
     
-    def next_token(self, root: ParseTreeNode, parent: ParseTreeNode) -> bool:
-
-        token = root.token
-        if token[0] == '"':
-            if token[-1] == '"':
-                #Keyword
-                word = read_next_word(self.program_str)
-                if word == token[1:-1]:
-                    w = get_next_word(self.program_str)
-                    if w == "+" or w == "-" or  w == "*" or  w == "/":
-                        parent.add_child(ParseTreeNode(w, None))
-                    return True
-                
-                return False
-            
-            print(f"Token Error: {token}")
-            exit(-1)
-
-        elif token == "value" or token == "type" or token == "name":
-            word = read_next_word(self.program_str)
-
-            if token == "value":
-                if is_value(word):
-                    parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
-                    return True
-                return False
-            
-            if token == "type" or token == "name":
-                if is_name(word):
-                    parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
-                    return True
-                return False
+    def parse_keyword(self, token: str, parent: ParseTreeNode) -> bool:
+        word = read_next_word(self.program_str)
+        if word == token[1:-1]:
+            w = get_next_word(self.program_str)
+            if w == "+" or w == "-" or  w == "*" or  w == "/":
+                parent.add_child(ParseTreeNode(w, None))
+            return True
         
-        else:
-            #Non-Terminal symbol
-            options = self.ebnf_dict[token]
-            for option in options:
-                is_first_symbol = True
+        return False
+    
+    def parse_terminals(self, token: str, parent: ParseTreeNode) -> bool:
+        word = read_next_word(self.program_str)
 
-                for token in option:
-                    if token[-1] == "*":
-                        token = token[:-1]
-                        
-                        while True:
-                            node = ParseTreeNode(token, None)
-                            if self.next_token(node, root):
-                                if is_first_symbol:
-                                    parent.add_child(root)
-                                    is_first_symbol = False
-                            else:
-                                break
-                        continue
-                    else:
+        if token == "value":
+            if is_value(word):
+                parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
+                return True
+            return False
+        
+        if token == "type" or token == "name":
+            if is_name(word):
+                parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
+                return True
+            return False
+        
+        print(f"Unreachable Statment Parsing Terminal: {token}")
+        exit(-1)
+
+    
+    def parse_non_terminals(self, token: str, parent: ParseTreeNode, root: ParseTreeNode) -> bool:
+        options = self.ebnf_dict[token]
+        for option in options:
+            #Try different Options
+            is_first_symbol = True
+
+            for token in option:
+                if token[-1] == "*":
+                    token = token[:-1]
+                    
+                    while True:
                         node = ParseTreeNode(token, None)
                         if self.next_token(node, root):
                             if is_first_symbol:
                                 parent.add_child(root)
                                 is_first_symbol = False
-
-                        elif is_first_symbol:
-                            break
                         else:
-                            print(f"Parse Error Token: {token}, word: {read_next_word(self.program_str)}")
-                            exit(-1)
-
-                if is_first_symbol:
+                            break
                     continue
+                else:
+                    node = ParseTreeNode(token, None)
+                    if self.next_token(node, root):
+                        if is_first_symbol:
+                            parent.add_child(root)
+                            is_first_symbol = False
 
-                return True
+                    elif is_first_symbol:
+                        break
+                    else:
+                        print(f"Parse Error Token: {token}, word: {read_next_word(self.program_str)}")
+                        exit(-1)
+
+            if is_first_symbol:
+                continue
+
+            return True
+        
+        return False
+
+        
+
+    def next_token(self, root: ParseTreeNode, parent: ParseTreeNode) -> bool:
+
+        token = root.token
+        if token[0] == '"':
+            if token[-1] == '"':
+                #Keyword "KEY"
+                return self.parse_keyword(token, parent)
+                
             
-            return False
+            print(f"Token Error: {token}")
+            exit(-1)
+
+        elif token == "value" or token == "type" or token == "name":
+            #Concrete Values, Names or TypeNames
+            return self.parse_terminals(token, parent)
+        
+        else:
+            #Non-Terminal symbol
+            return self.parse_non_terminals(token, parent, root)
                     
 
-        print(f"Unreachable Statment Parsing")
+        print(f"Unreachable Statment in Parsing reached")
         exit(-1)
     
     def parse(self):
