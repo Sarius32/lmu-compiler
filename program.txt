@@ -1,6 +1,10 @@
 MAIN{
 CONST Tree t = 1 ;
-VAR int i;
+CONST Tree t4 = 1 ;
+VAR int   i;
+VAR int r;
 i=3;
+t4 =564;
+r= 0;
 }
 

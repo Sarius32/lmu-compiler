@@ -99,6 +99,14 @@ def read_next_word(program_str: list[str]) -> str:
     return word
 
 
+def is_value(word: str) -> bool:
+    return word.isnumeric()
+
+def is_name(word: str) -> bool:
+    return word[0].isalpha()
+
+
+
 class ParseTreeNode:
     def __init__(self, token, value):
         self.token: str = token
@@ -139,10 +147,21 @@ class Parser:
             
             print(f"Token Error: {token}")
             exit(-1)
-        
+
         elif token == "value" or token == "type" or token == "name":
-            parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
-            return True
+            word = read_next_word(self.program_str)
+
+            if token == "value":
+                if is_value(word):
+                    parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
+                    return True
+                return False
+            
+            if token == "type" or token == "name":
+                if is_name(word):
+                    parent.add_child(ParseTreeNode(token, get_next_word(self.program_str)))
+                    return True
+                return False
         
         else:
             #Non-Terminal symbol
@@ -151,17 +170,30 @@ class Parser:
                 is_first_symbol = True
 
                 for token in option:
-                    node = ParseTreeNode(token, None)
-                    if self.next_token(node, root):
-                        if is_first_symbol:
-                            parent.add_child(root)
-
-                        is_first_symbol = False
-                    elif is_first_symbol:
-                        break
+                    if token[-1] == "*":
+                        token = token[:-1]
+                        
+                        while True:
+                            node = ParseTreeNode(token, None)
+                            if self.next_token(node, root):
+                                if is_first_symbol:
+                                    parent.add_child(root)
+                                    is_first_symbol = False
+                            else:
+                                break
+                        continue
                     else:
-                        print(f"Parse Error Token: {token}, word: {read_next_word(self.program_str)}")
-                        exit(-1)
+                        node = ParseTreeNode(token, None)
+                        if self.next_token(node, root):
+                            if is_first_symbol:
+                                parent.add_child(root)
+                                is_first_symbol = False
+
+                        elif is_first_symbol:
+                            break
+                        else:
+                            print(f"Parse Error Token: {token}, word: {read_next_word(self.program_str)}")
+                            exit(-1)
 
                 if is_first_symbol:
                     continue
