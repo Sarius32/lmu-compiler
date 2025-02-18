@@ -1,0 +1,16 @@
+START = program
+program = main
+
+main = "MAIN" body
+
+body = "{" const declaration assign "}"
+
+const = "CONST" type name "=" value ";"
+declaration = "VAR" type name ";"
+assign = name "=" expr ";"
+
+expr = value
+
+
+
+

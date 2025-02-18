@@ -1,0 +1,6 @@
+MAIN{
+CONST Tree t = 1 ;
+VAR int i;
+i=3;
+}
+
