@@ -79,8 +79,7 @@ def read_next_word(program_str: list[str]) -> str:
 
     while line == "":
         if len(program_str) < 1:
-            print("missing line in programm")
-            exit(-1)
+            return ""
 
         line = program_str.pop(0)
         line = space_line(line)
@@ -140,7 +139,9 @@ class Parser:
                 #Keyword
                 word = read_next_word(self.program_str)
                 if word == token[1:-1]:
-                    get_next_word(self.program_str)
+                    w = get_next_word(self.program_str)
+                    if w == "+" or w == "-" or  w == "*" or  w == "/":
+                        parent.add_child(ParseTreeNode(w, None))
                     return True
                 
                 return False
@@ -210,8 +211,12 @@ class Parser:
         n = ParseTreeNode("program", None)
         #self.root.add_child(n)
         if self.next_token(n, self.root):
-            print("Successfull Parsed \n")
-            print(self.root.__repr__())
+            if read_next_word(self.program_str) == "":
+                print("Successfull Parsed \n")
+                print(self.root.__repr__())
+            else:
+                print("Not everything parsed!!! \n")
+                print(self.program_str)
         
         else:
             print("Could not Parse")

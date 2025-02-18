@@ -1,10 +1,20 @@
+CLASS myclass1{
+	j = (1 + 2) * 5;
+}
+
+CLASS c2{
+	CONST int c6 = 100;
+	VAR int i;
+	i = 65 * 3;
+}
+
 MAIN{
-CONST Tree t = 1 ;
-CONST Tree t4 = 1 ;
-VAR int   i;
-VAR int r;
-i=3;
-t4 =564;
-r= 0;
+	CONST Tree t = 1 ;
+	CONST Tree t4 = 1 ;
+	VAR int   i;
+	VAR int r;
+	i=3;
+	t4 =564;
+	r= 0;
 }
 
