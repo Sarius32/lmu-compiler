@@ -1,6 +1,6 @@
 from lexer_new import Lexer, Identifier, Literal, Keyword, Separator, Operator
-from nodes import ClassNode, VariableDef, VariableNode, FunctionDef, OperationNode, AssignmentNode, FunctionCallNode, \
-    IfThenElseNode, WhileNode, InvertNode, ComparisonNode, InputNode, WriteNode
+from nodes import ClassNode, VariableDefNode, VariableNode, FunctionDefNode, OperationNode, AssignmentNode, \
+    FunctionCallNode, IfThenElseNode, WhileNode, InvertNode, ComparisonNode, InputNode, WriteNode
 
 
 def interrupt_on_error(error_msg):
@@ -111,7 +111,7 @@ class Parser:
 
         self._next_token()  # skip "}"
         self._add_def_func(name)
-        return FunctionDef(name, args, vars_, stmts)
+        return FunctionDefNode(name, args, vars_, stmts)
 
     def _arg_def(self):
         """ Expected Tokens: [ [ var1 ] { "," varx } [ "," ] ] ")" """
@@ -155,7 +155,7 @@ class Parser:
             self._check_curr_token(Separator.SEMICOLON, "; expected after variable definition")
 
         self._next_token()
-        return VariableDef(name, value)
+        return VariableDefNode(name, value)
 
     def _statement(self):
         """ Expected Tokens: "print" "(" [ expression ] ")" | if_statement | while_loop | name [ "." name ] ( "=" expression | "(" [ args ] ")" ) """

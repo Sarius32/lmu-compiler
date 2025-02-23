@@ -9,7 +9,7 @@ class ClassNode:
 
 
 @dataclass
-class VariableDef:
+class VariableDefNode:
     name: str
     value: any
 
@@ -20,7 +20,7 @@ class VariableNode:
 
 
 @dataclass
-class FunctionDef:
+class FunctionDefNode:
     name: str
     args: list
     vars_: list
