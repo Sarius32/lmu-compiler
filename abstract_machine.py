@@ -141,12 +141,12 @@ class AbstractMachine:
         self.P = a
 
     def _jump_on_true(self, a: int):
-        if self._store[self.T] == True:
+        if self._store[self.T] == int(True):
             self.P = a
         self.T -= 1
 
     def _jump_on_false(self, a: int):
-        if self._store[self.T] == False:
+        if self._store[self.T] == int(False):
             self.P = a
         self.T -= 1
 
@@ -166,16 +166,16 @@ class AbstractMachine:
 
     def _operator(self, op: Literal["!", "=", "<", ">", "+", "-", "*", "/"]):
         if op == "!":
-            self._store[self.T] = not self._store[self.T]
+            self._store[self.T] = int(not self._store[self.T])
             return
 
-        if op == "=": self._store[self.T - 1] = self._store[self.T - 1] == self._store[self.T]
-        if op == "<": self._store[self.T - 1] = self._store[self.T - 1] < self._store[self.T]
-        if op == ">": self._store[self.T - 1] = self._store[self.T - 1] > self._store[self.T]
-        if op == "+": self._store[self.T - 1] = self._store[self.T - 1] + self._store[self.T]
-        if op == "-": self._store[self.T - 1] = self._store[self.T - 1] - self._store[self.T]
-        if op == "*": self._store[self.T - 1] = self._store[self.T - 1] * self._store[self.T]
-        if op == "/": self._store[self.T - 1] = self._store[self.T - 1] / self._store[self.T]
+        if op == "=": self._store[self.T - 1] = int(self._store[self.T - 1] == self._store[self.T])
+        if op == "<": self._store[self.T - 1] = int(self._store[self.T - 1] < self._store[self.T])
+        if op == ">": self._store[self.T - 1] = int(self._store[self.T - 1] > self._store[self.T])
+        if op == "+": self._store[self.T - 1] = int(self._store[self.T - 1] + self._store[self.T])
+        if op == "-": self._store[self.T - 1] = int(self._store[self.T - 1] - self._store[self.T])
+        if op == "*": self._store[self.T - 1] = int(self._store[self.T - 1] * self._store[self.T])
+        if op == "/": self._store[self.T - 1] = int(self._store[self.T - 1] / self._store[self.T])
         self.T -= 1
 
     def _read(self):
