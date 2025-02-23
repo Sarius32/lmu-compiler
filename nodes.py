@@ -25,6 +25,7 @@ class FunctionDefNode:
     args: list
     vars_: list
     stmts: list
+    ret: any
 
 
 @dataclass

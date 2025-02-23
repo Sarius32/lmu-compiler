@@ -24,6 +24,8 @@ class Keyword(Enum):
     PRINT = "print"
     INPUT = "input"
 
+    RETURN = "return"
+
 
 KEYWORDS = [kw.value for kw in Keyword]
 

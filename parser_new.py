@@ -85,7 +85,7 @@ class Parser:
         return ClassNode(name, vars_, funcs)
 
     def _function_def(self):
-        """ Expected Tokens: "func" name "(" [ arg1 { "," argx } [ "," ] ] ")" "{" [ { variable_def } ] { statement } "}" """
+        """ Expected Tokens: "func" name "(" [ arg1 { "," argx } [ "," ] ] ")" "{" [ { variable_def } ] { statement } [ "return" expression ] "}" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Function identifier must be of type Identifier")
         name = name_token.value
@@ -106,12 +106,23 @@ class Parser:
             vars_.append(new_var)
 
         stmts = []
-        while self._curr_token != Separator.R_CURLY:
+        while self._curr_token not in [Separator.R_CURLY, Keyword.RETURN]:
             stmts.append(self._statement())
 
+        ret = None
+        if self._curr_token == Keyword.RETURN:
+            self._next_token()
+            ret = self._expression()
+
+            self._check_curr_token(Separator.SEMICOLON, "; expected at end of function return")
+            self._next_token()  # skip ";"
+
+
+        self._check_curr_token(Separator.R_CURLY, "} expected at end of function")
         self._next_token()  # skip "}"
+
         self._add_def_func(name)
-        return FunctionDefNode(name, args, vars_, stmts)
+        return FunctionDefNode(name, args, vars_, stmts, ret)
 
     def _arg_def(self):
         """ Expected Tokens: [ [ var1 ] { "," varx } [ "," ] ] ")" """
