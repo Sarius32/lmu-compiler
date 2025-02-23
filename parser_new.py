@@ -111,7 +111,7 @@ class Parser:
         while self._curr_token not in [Separator.R_CURLY, Keyword.RETURN]:
             stmts.append(self._statement())
 
-        ret = None
+        ret = 0
         if self._curr_token == Keyword.RETURN:
             self._next_token()
             ret = self._expression()
