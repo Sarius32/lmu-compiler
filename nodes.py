@@ -1,6 +1,5 @@
 from abc import ABC
 from dataclasses import dataclass
-from numpy import add, subtract, multiply, divide
 
 from lexer_new import Operator
 
@@ -61,7 +60,12 @@ class OperationNode(Node):
     right: any
 
     def optimized(self):
-        op_dict = {Operator.PLUS: add, Operator.MINUS: subtract, Operator.MULTIPLY: multiply, Operator.DIVIDE: divide}
+        op_dict = {
+            Operator.PLUS: lambda left, right: int(left + right),
+            Operator.MINUS: lambda left, right: int(left - right),
+            Operator.MULTIPLY: lambda left, right: int(left * right),
+            Operator.DIVIDE: lambda left, right: int(left / right),
+        }
 
         # if possible => reduce left/right side
         if type(self.left) != int:
