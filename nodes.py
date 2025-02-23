@@ -104,6 +104,14 @@ class IfThenElseNode(Node):
     then: list
     alternative: list
 
+    def optimized(self):
+        # if possible => reduce condition
+        if type(self.condition) != int:
+            self.condition = self.condition.optimized()
+
+        if type(self.condition) == int:
+            return self.then if self.condition else self.alternative
+
 
 @dataclass
 class WhileNode(Node):
@@ -115,12 +123,45 @@ class WhileNode(Node):
 class InvertNode(Node):
     condition: any
 
+    def optimized(self):
+        # if possible => reduce condition
+        if type(self.condition) != int:
+            self.condition = self.condition.optimized()
+
+        # if possible directly calculate the result and replace the node
+        if type(self.condition) == int:
+            return int(not self.condition)
+
+        return self
+
 
 @dataclass
 class ComparisonNode(Node):
     left: any
     operation: any
     right: any
+
+    def optimized(self):
+        op_dict = {
+            Operator.EQUALS: lambda left, right: int(left == right),
+            Operator.SMALLER: lambda left, right: int(left < right),
+            Operator.SMALLER_EQ: lambda left, right: int(left <= right),
+            Operator.GREATER: lambda left, right: int(left > right),
+            Operator.GREATER_EQ: lambda left, right: int(left >= right),
+            Operator.NOT_EQUAL: lambda left, right: int(left != right)
+        }
+
+        # if possible => reduce left/right side
+        if type(self.left) != int:
+            self.left = self.left.optimized()
+        if type(self.right) != int:
+            self.right = self.right.optimized()
+
+        # if possible directly calculate the result and replace the node
+        if type(self.left) == int and type(self.right) == int:
+            return int(op_dict[self.operation](self.left, self.right))
+
+        return self
 
 
 @dataclass
