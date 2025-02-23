@@ -21,6 +21,8 @@ class Keyword(Enum):
     ELSE = "else"
     WHILE = "while"
     DO = "do"
+    PRINT = "print"
+    INPUT = "input"
 
 
 KEYWORDS = [kw.value for kw in Keyword]

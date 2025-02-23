@@ -1,6 +1,6 @@
 from lexer_new import Lexer, Identifier, Literal, Keyword, Separator, Operator
 from nodes import ClassNode, VariableDef, VariableNode, FunctionDef, OperationNode, AssignmentNode, FunctionCallNode, \
-    IfThenElseNode, WhileNode, InvertNode, ComparisonNode
+    IfThenElseNode, WhileNode, InvertNode, ComparisonNode, InputNode, WriteNode
 
 
 def interrupt_on_error(error_msg):
@@ -9,18 +9,27 @@ def interrupt_on_error(error_msg):
 
 
 class Parser:
+    _in_class = None
+    _def_funcs = set()
+
     def __init__(self, tokens: list):
         self._tokens = tokens[::-1]
         self._curr_token = self._tokens.pop()
 
         self._nodes = []
-        self._nodes.append(self._class())
+        while self._curr_token:
+            if self._curr_token == Keyword.CLASS:
+                self._nodes.append(self._class())
+            elif self._curr_token == Keyword.VAR:
+                self._nodes.append(self._variable_def())
+            elif self._curr_token == Keyword.FUNC:
+                self._nodes.append(self._function_def())
+            else:
+                self._nodes.append(self._statement())
 
     def _next_token(self):
-        if len(self._tokens):
-            self._curr_token = self._tokens.pop()
-            return self._curr_token
-        return None
+        self._curr_token = self._tokens.pop() if len(self._tokens) else None
+        return self._curr_token
 
     def _check_curr_token(self, match, error_msg):
         if match in [Identifier, Literal]:
@@ -30,6 +39,17 @@ class Parser:
             if self._curr_token == match:
                 return
         interrupt_on_error(error_msg)
+
+    def _check_new_func_def(self, name):
+        prefix = (self._in_class + "::") if self._in_class else ""
+        if prefix + name in self._def_funcs:
+            error_msg = (f"Function '{name}' " + (f"for class '{self._in_class}' " if self._in_class else "")
+                         + "was already defined previously")
+            interrupt_on_error(error_msg)
+
+    def _add_def_func(self, name):
+        prefix = (self._in_class + "::") if self._in_class else ""
+        self._def_funcs.add(prefix + name)
 
     def _skip_current_token_conditionally(self, match, error_msg):
         self._check_curr_token(match, error_msg)  # check current token => interrupts incorrect match
@@ -44,6 +64,8 @@ class Parser:
         """ Expected Tokens: "class" name "{" { ( variable_def | function_def ) } "}" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Class identifier must be of type Identifier")
+        name = name_token.value
+        self._in_class = name
         self._next_token()
 
         self._check_curr_token(Separator.L_CURLY, "{ expected after class identifier")
@@ -54,22 +76,45 @@ class Parser:
             if self._curr_token == Keyword.VAR:
                 vars_.append(self._variable_def())
             elif self._curr_token == Keyword.FUNC:
-                funcs.append(self._function_def(True))
+                funcs.append(self._function_def())
             else:
                 interrupt_on_error(f"Unknown token ({self._curr_token}) found in class body")
 
         self._next_token()  # skip "}"
-        return ClassNode(name_token.value, vars_, funcs)
+        self._in_class = None
+        return ClassNode(name, vars_, funcs)
 
-    def _function_def(self, in_class=False):
+    def _function_def(self):
         """ Expected Tokens: "func" name "(" [ arg1 { "," argx } [ "," ] ] ")" "{" [ { variable_def } ] { statement } "}" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Function identifier must be of type Identifier")
+        name = name_token.value
+        self._check_new_func_def(name)
         self._next_token()
 
         self._check_curr_token(Separator.L_ROUND, "( expected after function identifier")
         self._next_token()  # skip "("
 
+        args = self._arg_def()
+
+        self._check_curr_token(Separator.L_CURLY, "{ expected after function identifier")
+        self._next_token()  # skip "{"
+
+        vars_ = []
+        while self._curr_token == Keyword.VAR:
+            new_var = self._variable_def()
+            vars_.append(new_var)
+
+        stmts = []
+        while self._curr_token != Separator.R_CURLY:
+            stmts.append(self._statement())
+
+        self._next_token()  # skip "}"
+        self._add_def_func(name)
+        return FunctionDef(name, args, vars_, stmts)
+
+    def _arg_def(self):
+        """ Expected Tokens: [ [ var1 ] { "," varx } [ "," ] ] ")" """
         args = []
         while True:
             if self._curr_token == Separator.R_ROUND:  # enables empty arg list
@@ -90,39 +135,54 @@ class Parser:
             else:
                 interrupt_on_error(", or ) expected after argument in function definition")
 
-        self._check_curr_token(Separator.L_CURLY, "{ expected after function identifier")
-        self._next_token()  # skip "{"
-
-        vars_ = []
-        while self._curr_token == Keyword.VAR:
-            vars_.append(self._variable_def())
-
-        stmts = []
-        while self._curr_token != Separator.R_CURLY:
-            stmts.append(self._statement())
-
-        self._next_token()  # skip "}"
-        return FunctionDef(name_token.value, args, vars_, stmts)
+        return args
 
     def _variable_def(self):
         """ Expected Tokens: "var" name [ "=" expression ] ";" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Variable identifier must be of type Identifier")
+        name = name_token.value
         self._next_token()
 
         value = None
         if self._curr_token == Operator.EQUAL:
             self._next_token()  # skip "="
-            value = self._expression()
+
+            value = self._assignment_value()
+
             self._check_curr_token(Separator.SEMICOLON, "; expected after expression assigned to variable")
         else:
             self._check_curr_token(Separator.SEMICOLON, "; expected after variable definition")
 
         self._next_token()
-        return VariableDef(name_token.value, value)
+        return VariableDef(name, value)
 
     def _statement(self):
-        """ Expected Tokens: ( name ( "=" expression | "(" [ args ] ")" ) | if_statement | while_loop ) """
+        """ Expected Tokens: "print" "(" [ expression ] ")" | if_statement | while_loop | name [ "." name ] ( "=" expression | "(" [ args ] ")" ) """
+        if self._curr_token == Keyword.PRINT:  # print statement
+            self._next_token()
+
+            self._check_curr_token(Separator.L_ROUND, "( expected after print")
+            self._next_token()
+
+            expr = None
+            if self._curr_token != Separator.R_ROUND:
+                expr = self._expression()
+                self._check_curr_token(Separator.R_ROUND, ") expected after print argument")
+
+            self._next_token()  # skip ")"
+
+            self._check_curr_token(Separator.SEMICOLON, "; expected after print")
+            self._next_token()  # skip ";"
+
+            return WriteNode(expr)
+
+        if self._curr_token == Keyword.IF:  # if statement
+            return self._if_stmt()
+
+        if self._curr_token == Keyword.WHILE:  # while statement
+            return self._while_stmt()
+
         if type(self._curr_token) == Identifier:
             name_token = self._curr_token
             self._next_token()
@@ -130,39 +190,7 @@ class Parser:
             if self._curr_token == Operator.EQUAL:  # Assignment
                 self._next_token()  # skip "="
 
-                if type(self._curr_token) == Identifier:  # could be expression => term => factor or start of function call
-                    if self._tokens[-1] == Separator.L_ROUND:
-                        func_name_token = self._curr_token
-                        self._next_token()  # skip function name
-                        self._next_token()  # skip "("
-
-                        args = []
-                        while True:
-                            if self._curr_token == Separator.R_ROUND:  # enables empty arg list
-                                self._next_token()  # skip ")"
-                                break
-
-                            if type(self._curr_token) == Identifier:
-                                args.append(VariableNode(self._curr_token.value))
-                            elif type(self._curr_token) == Literal:
-                                args.append(self._curr_token.value)
-                            else:
-                                interrupt_on_error("Argument in function call must be of type Identifier or Literal")
-                            self._next_token()  # skip analysed argument
-
-                            if self._curr_token == Separator.COMMA:
-                                self._next_token()  # skip ","
-                            elif self._curr_token == Separator.R_ROUND:
-                                self._next_token()  # skip ")"
-                                break
-                            else:
-                                interrupt_on_error(", or ) expected after argument in function call")
-
-                        value = FunctionCallNode(func_name_token.value, args)
-                    else:
-                        value = self._expression()
-                else:
-                    value = self._expression()
+                value = self._assignment_value()
 
                 self._check_curr_token(Separator.SEMICOLON, "; expected after variable assignment")
                 self._next_token()  # skip ";"
@@ -199,13 +227,61 @@ class Parser:
 
             interrupt_on_error("Identifier found without assignment or use as function call")
 
-        if self._curr_token == Keyword.IF:
-            return self._if_stmt()
+        interrupt_on_error("Unknown token, statement expected")
 
-        if self._curr_token == Keyword.WHILE:
-            return self._while_stmt()
+    def _assignment_value(self):
+        """ Expected Tokens: "input" "(" ")" | name "(" [ arg_list ] ")" | expression """
+        if self._curr_token == Keyword.INPUT:  # input value assigned to variable
+            self._next_token()
 
-        interrupt_on_error("Unknown token; statement expected")
+            self._check_curr_token(Separator.L_ROUND, "( expected after input call")
+            self._next_token()
+
+            self._check_curr_token(Separator.R_ROUND, ") expected after input call")
+            self._next_token()
+            return InputNode()
+
+        if type(self._curr_token) == Identifier:  # could be expression => term => factor or start of function call
+            if self._tokens[-1] == Separator.L_ROUND:
+                func_name_token = self._curr_token
+                self._next_token()  # skip function name
+                self._next_token()  # skip "("
+
+                args = self._arg_list()
+
+                value = FunctionCallNode(func_name_token.value, args)
+            else:
+                value = self._expression()
+        else:
+            value = self._expression()
+
+        return value
+
+    def _arg_list(self):
+        """ Expected Tokens: [ [ ( var1 | number ) ] { "," ( varx | number ) } [ "," ] ] ")" """
+        args = []
+        while True:
+            if self._curr_token == Separator.R_ROUND:  # enables empty arg list
+                self._next_token()  # skip ")"
+                break
+
+            if type(self._curr_token) == Identifier:
+                args.append(VariableNode(self._curr_token.value))
+            elif type(self._curr_token) == Literal:
+                args.append(self._curr_token.value)
+            else:
+                interrupt_on_error("Argument in function call must be of type Identifier or Literal")
+            self._next_token()  # skip analysed argument
+
+            if self._curr_token == Separator.COMMA:
+                self._next_token()  # skip ","
+            elif self._curr_token == Separator.R_ROUND:
+                self._next_token()  # skip ")"
+                break
+            else:
+                interrupt_on_error(", or ) expected after argument in function call")
+
+        return args
 
     def _if_stmt(self):
         """ Expected Tokens: "if" "(" condition ")" "then" "{" { statement } "}" [ "else" "{" { statement } "}" ] """
