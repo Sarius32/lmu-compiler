@@ -44,7 +44,8 @@ class FunctionDefNode(Node):
     def optimized(self):
         stmts = []
         for stmt in self.stmts:
-            stmts.append(stmt.optimized())
+            new_stmt = stmt.optimized()
+            stmts.append(new_stmt) if new_stmt else None  # don't append if stmt collapsed into no statements
         self.stmts = stmts
 
         if type(self.ret) != int:

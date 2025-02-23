@@ -434,7 +434,8 @@ class Parser:
     def _optimize(self):
         nodes = []
         for node in self._nodes:
-            nodes.append(node.optimized())
+            new_node = node.optimized()
+            nodes.append(new_node) if new_node else None  # don't append if stmt collapsed into no statements
         self._nodes = nodes
 
 
