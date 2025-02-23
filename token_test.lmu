@@ -1,0 +1,12 @@
+class BaseClass {
+    var _internal_value = 3;
+
+    func internal_func (a,b) {
+        a = 3;
+        if (a ==3) then {
+            x = alpha();
+        } else {
+            incorrect(3, 4);
+        }
+    }
+}
