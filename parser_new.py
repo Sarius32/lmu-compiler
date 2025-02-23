@@ -27,6 +27,8 @@ class Parser:
             else:
                 self._nodes.append(self._statement())
 
+        self._optimize()
+
     def _next_token(self):
         self._curr_token = self._tokens.pop() if len(self._tokens) else None
         return self._curr_token
@@ -116,7 +118,6 @@ class Parser:
 
             self._check_curr_token(Separator.SEMICOLON, "; expected at end of function return")
             self._next_token()  # skip ";"
-
 
         self._check_curr_token(Separator.R_CURLY, "} expected at end of function")
         self._next_token()  # skip "}"
@@ -425,10 +426,16 @@ class Parser:
 
         expr = self._expression()
 
-        self._check_curr_token(Separator.L_ROUND, ") expected after expression as a factor")
+        self._check_curr_token(Separator.R_ROUND, ") expected after expression as a factor")
         self._next_token()
 
         return expr
+
+    def _optimize(self):
+        nodes = []
+        for node in self._nodes:
+            nodes.append(node.optimized())
+        self._nodes = nodes
 
 
 if __name__ == "__main__":
