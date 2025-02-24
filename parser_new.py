@@ -150,23 +150,19 @@ class Parser:
         return args
 
     def _variable_def(self):
-        """ Expected Tokens: "var" name [ "=" expression ] ";" """
+        """ Expected Tokens: "var" name "=" expression ";" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Variable identifier must be of type Identifier")
         name = name_token.value
         self._next_token()
 
-        value = None
-        if self._curr_token == Operator.EQUAL:
-            self._next_token()  # skip "="
+        self._check_curr_token(Operator.EQUAL, "Variable needs to have a value assigned ('=' needs to follow variable identifier)")
+        self._next_token()  # skip "="
 
-            value = self._assignment_value()
+        value = self._assignment_value()
 
-            self._check_curr_token(Separator.SEMICOLON, "; expected after expression assigned to variable")
-        else:
-            self._check_curr_token(Separator.SEMICOLON, "; expected after variable definition")
-
-        self._next_token()
+        self._check_curr_token(Separator.SEMICOLON, "; expected after expression assigned to variable")
+        self._next_token()  # skip ";"
         return VariableDefNode(name, value)
 
     def _statement(self):
