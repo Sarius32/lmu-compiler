@@ -1,3 +1,5 @@
+from enum import Enum
+
 from lexer_new import Lexer, Identifier, Literal, Keyword, Separator, Operator
 from nodes import ClassNode, VariableDefNode, VariableNode, FunctionDefNode, OperationNode, AssignmentNode, \
     FunctionCallNode, IfThenElseNode, WhileNode, InvertNode, ComparisonNode, InputNode, WriteNode
@@ -8,24 +10,45 @@ def interrupt_on_error(error_msg):
     exit(-1)
 
 
+class IdType(Enum):
+    Class = "class"
+    Attr = "attribute"
+    Method = "method"
+    Variable = "variable"
+    Function = "function"
+    FuncArg = "argument"
+
+
 class Parser:
     _in_class = None
-    _def_funcs = set()
+    _use_class = False
+    _in_func = None
+
+    _def_ids = dict()
 
     def __init__(self, tokens: list):
+        """ Expected Tokens: { class } { function_def } { var_def } { statement } """
         self._tokens = tokens[::-1]
         self._curr_token = self._tokens.pop()
 
         self._nodes = []
+        while self._curr_token == Keyword.CLASS:
+            self._nodes.append(self._class())
+
+        while self._curr_token == Keyword.FUNC:
+            self._nodes.append(self._function_def())
+        if self._curr_token == Keyword.CLASS:
+            interrupt_on_error("Can't define classes after function definitions")
+
+        while self._curr_token == Keyword.VAR:
+            self._nodes.append(self._variable_def())
+        if self._curr_token == Keyword.CLASS:
+            interrupt_on_error("Can't define classes after variable definitions")
+        if self._curr_token == Keyword.FUNC:
+            interrupt_on_error("Can't define functions after variable definitions")
+
         while self._curr_token:
-            if self._curr_token == Keyword.CLASS:
-                self._nodes.append(self._class())
-            elif self._curr_token == Keyword.VAR:
-                self._nodes.append(self._variable_def())
-            elif self._curr_token == Keyword.FUNC:
-                self._nodes.append(self._function_def())
-            else:
-                self._nodes.append(self._statement())
+            self._nodes.append(self._statement())
 
         self._optimize()
 
@@ -42,56 +65,129 @@ class Parser:
                 return
         interrupt_on_error(error_msg)
 
-    def _check_new_func_def(self, name):
-        prefix = (self._in_class + "::") if self._in_class else ""
-        if prefix + name in self._def_funcs:
-            error_msg = (f"Function '{name}' " + (f"for class '{self._in_class}' " if self._in_class else "")
-                         + "was already defined previously")
-            interrupt_on_error(error_msg)
+    def _enter_class(self, name_token):
+        name = name_token.value
+        if name in self._def_ids.keys():
+            interrupt_on_error(f"Class identifier '{name}' already defined as {self._def_ids[name].value}")
 
-    def _add_def_func(self, name):
-        prefix = (self._in_class + "::") if self._in_class else ""
-        self._def_funcs.add(prefix + name)
+        self._in_class = name
+        return name
 
-    def _skip_current_token_conditionally(self, match, error_msg):
-        self._check_curr_token(match, error_msg)  # check current token => interrupts incorrect match
-        return self._next_token()  # return next token
+    def _exit_class(self):
+        self._def_ids[self._in_class] = IdType.Class
+        self._in_class = None
 
-    def _skip_next_token_conditionally(self, match, error_msg):
-        self._next_token()  # goto next token
-        self._check_curr_token(match, error_msg)  # check next token => interrupts incorrect match
-        return self._next_token()  # return token after next token
+    def _enter_function(self, name_token):
+        name = name_token.value
+        if name in self._def_ids.keys():
+            interrupt_on_error(
+                f"Function identifier '{name_token.value}' already defined as {self._def_ids[name].value}")
+
+        self._in_func = name
+        return name
+
+    def _exit_function(self):
+        pre = (self._in_class + "::") if self._in_class else ""
+        name = pre + self._in_func
+        self._def_ids[name] = IdType.Method if self._in_class else IdType.Function
+        self._in_func = None
+
+    def _check_add_arg(self, name_token):
+        pre = (self._in_class + "::") if self._in_class else ""
+        pre += (self._in_func + "::") if self._in_func else ""
+        name = pre + name_token.value
+        if name in self._def_ids.keys():
+            interrupt_on_error(
+                f"Argument identifier '{name_token.value}' already defined as {self._def_ids[name].value}")
+        self._def_ids[name] = IdType.FuncArg
+        return name
+
+    def _use_arg(self, name_token):
+        pre = (self._in_class + "::") if self._in_class and self._use_class else ""
+        pre += (self._in_func + "::") if self._in_func else ""
+        name = pre + name_token.value
+        type_ = self._def_ids.get(name, None)
+        if type_ is None:
+            interrupt_on_error(f"Variable '{name_token.value}' not defined previously")
+
+        if type_ == IdType.Class:
+            interrupt_on_error(f"Class '{name_token.value}' can't be used as a argument")
+
+        return name
+
+    def _check_add_var(self, name_token):
+        pre = (self._in_class + "::") if self._in_class else ""
+        pre += (self._in_func + "::") if self._in_func else ""
+        name = pre + name_token.value
+        if name in self._def_ids.keys():
+            interrupt_on_error(
+                f"Variable identifier '{name_token.value}' already defined as {self._def_ids[name].value}")
+        self._def_ids[name] = IdType.Attr if self._in_class and not self._in_func else IdType.Variable
+        return name
+
+    def _use_var_attr(self, name_token, to_assign_to=False):
+        pre = (self._in_class + "::") if self._in_class and (self._use_class or self._in_func) else ""
+        pre += (self._in_func + "::") if self._in_func else ""
+        name = pre + name_token.value
+        type_ = self._def_ids.get(name, None)
+        if type_ is None:
+            interrupt_on_error(f"Variable '{name_token.value}' not defined previously")
+
+        if to_assign_to:
+            if type_ == IdType.FuncArg:
+                interrupt_on_error(f"Argument '{name_token.value}' can't be assigned a value")
+            elif type_ not in [IdType.Attr, IdType.Variable]:
+                interrupt_on_error(f"{type_.value.title()} '{name_token.value}' can't be assigned a value")
+        else:
+            if type_ == IdType.Class:
+                interrupt_on_error(f"Class '{name_token.value}' can't be used in a expression")
+
+        return name
+
+    def _use_func(self, name_token):
+        pre = (self._in_class + "::") if self._in_class and self._use_class else ""
+        name = pre + name_token.value
+        type_ = self._def_ids.get(name, None)
+        if type_ is None:
+            interrupt_on_error(f"Function '{name_token.value}' not defined previously")
+
+        if type_ not in [IdType.Function, IdType.Method]:
+            interrupt_on_error(f"{type_.value.title()} '{name_token.value}' can't be called")
+
+        return name
 
     def _class(self):
-        """ Expected Tokens: "class" name "{" { ( variable_def | function_def ) } "}" """
+        """ Expected Tokens: "class" name "{" { variable_def } { function_def } "}" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Class identifier must be of type Identifier")
-        name = name_token.value
-        self._in_class = name
+        name = self._enter_class(name_token)
         self._next_token()
 
         self._check_curr_token(Separator.L_CURLY, "{ expected after class identifier")
         self._next_token()  # skip "{"
 
-        vars_, funcs = [], []
-        while self._curr_token != Separator.R_CURLY:
-            if self._curr_token == Keyword.VAR:
-                vars_.append(self._variable_def())
-            elif self._curr_token == Keyword.FUNC:
-                funcs.append(self._function_def())
-            else:
-                interrupt_on_error(f"Unknown token ({self._curr_token}) found in class body")
+        vars_ = []
+        while self._curr_token == Keyword.VAR:
+            vars_.append(self._variable_def())
 
+        funcs = []
+        while self._curr_token == Keyword.FUNC:
+            funcs.append(self._function_def())
+
+        if self._curr_token == Keyword.VAR:
+            interrupt_on_error("Can't define class attributes after definition of class methods")
+
+        self._check_curr_token(Separator.R_CURLY, "} expected at the end of class definition")
         self._next_token()  # skip "}"
-        self._in_class = None
+
+        self._exit_class()
         return ClassNode(name, vars_, funcs)
 
     def _function_def(self):
-        """ Expected Tokens: "func" name "(" [ arg1 { "," argx } [ "," ] ] ")" "{" [ { variable_def } ] { statement } [ "return" expression ] "}" """
+        """ Expected Tokens: "func" name "(" [ arg1 { "," argx } [ "," ] ] ")" "{" { variable_def } { statement } [ "return" expression ] "}" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Function identifier must be of type Identifier")
-        name = name_token.value
-        self._check_new_func_def(name)
+        name = self._enter_function(name_token)
         self._next_token()
 
         self._check_curr_token(Separator.L_ROUND, "( expected after function identifier")
@@ -104,8 +200,7 @@ class Parser:
 
         vars_ = []
         while self._curr_token == Keyword.VAR:
-            new_var = self._variable_def()
-            vars_.append(new_var)
+            vars_.append(self._variable_def())
 
         stmts = []
         while self._curr_token not in [Separator.R_CURLY, Keyword.RETURN]:
@@ -122,7 +217,7 @@ class Parser:
         self._check_curr_token(Separator.R_CURLY, "} expected at end of function")
         self._next_token()  # skip "}"
 
-        self._add_def_func(name)
+        self._exit_function()
         return FunctionDefNode(name, args, vars_, stmts, ret)
 
     def _arg_def(self):
@@ -134,7 +229,8 @@ class Parser:
                 break
 
             if type(self._curr_token) == Identifier:
-                args.append(VariableNode(self._curr_token.value))
+                name = self._check_add_arg(self._curr_token)
+                args.append(VariableNode(name))
                 self._next_token()
             elif type(self._curr_token) == Literal:
                 interrupt_on_error("Function argument must be of type Identifier")
@@ -153,10 +249,11 @@ class Parser:
         """ Expected Tokens: "var" name "=" expression ";" """
         name_token = self._next_token()
         self._check_curr_token(Identifier, "Variable identifier must be of type Identifier")
-        name = name_token.value
+        name = self._check_add_var(name_token)
         self._next_token()
 
-        self._check_curr_token(Operator.EQUAL, "Variable needs to have a value assigned ('=' needs to follow variable identifier)")
+        self._check_curr_token(Operator.EQUAL,
+                               "Variable needs to have a value assigned ('=' needs to follow variable identifier)")
         self._next_token()  # skip "="
 
         value = self._assignment_value()
@@ -166,7 +263,7 @@ class Parser:
         return VariableDefNode(name, value)
 
     def _statement(self):
-        """ Expected Tokens: "print" "(" [ expression ] ")" | if_statement | while_loop | name [ "." name ] ( "=" expression | "(" [ args ] ")" ) """
+        """ Expected Tokens: "print" "(" [ expression ] ")" | if_statement | while_loop | ["this" "." ] name [ "." name ] ( "=" expression | "(" [ args ] ")" ) """
         if self._curr_token == Keyword.PRINT:  # print statement
             self._next_token()
 
@@ -191,54 +288,50 @@ class Parser:
         if self._curr_token == Keyword.WHILE:  # while statement
             return self._while_stmt()
 
+        self._use_class = False
+        if self._curr_token == Keyword.THIS:
+            if self._in_class is None:
+                interrupt_on_error("Can't use keyword 'this' outside of class methods")
+
+            self._use_class = True
+            self._next_token()  # skip 'this'
+
+            self._check_curr_token(Separator.DOT, ". expected after 'this' keyword")
+            self._next_token()  # skip '.'
+
         if type(self._curr_token) == Identifier:
             name_token = self._curr_token
             self._next_token()
 
             if self._curr_token == Operator.EQUAL:  # Assignment
+                name = self._use_var_attr(name_token, True)
                 self._next_token()  # skip "="
 
                 value = self._assignment_value()
 
                 self._check_curr_token(Separator.SEMICOLON, "; expected after variable assignment")
                 self._next_token()  # skip ";"
-                return AssignmentNode(VariableNode(name_token.value), value)
+                return AssignmentNode(VariableNode(name), value)
 
             if self._curr_token == Separator.L_ROUND:  # Function Call
+                name = self._use_func(name_token)
                 self._next_token()  # skip "("
 
-                args = []
-                while True:
-                    if self._curr_token == Separator.R_ROUND:  # enables empty arg list
-                        self._next_token()  # skip ")"
-                        break
-
-                    if type(self._curr_token) == Identifier:
-                        args.append(VariableNode(self._curr_token.value))
-                    elif type(self._curr_token) == Literal:
-                        args.append(self._curr_token.value)
-                    else:
-                        interrupt_on_error("Argument in function call must be of type Identifier or Literal")
-                    self._next_token()  # skip analysed argument
-
-                    if self._curr_token == Separator.COMMA:
-                        self._next_token()  # skip ","
-                    elif self._curr_token == Separator.R_ROUND:
-                        self._next_token()  # skip ")"
-                        break
-                    else:
-                        interrupt_on_error(", or ) expected after argument in function call")
+                args = self._arg_list()
 
                 self._check_curr_token(Separator.SEMICOLON, "; expected after function call")
                 self._next_token()  # skip ";"
-                return FunctionCallNode(name_token.value, args)
+                return FunctionCallNode(name, args)
 
             interrupt_on_error("Identifier found without assignment or use as function call")
+
+        if self._use_attr:
+            interrupt_on_error("Class method or attribute identifier needs to follow 'this' keyword")
 
         interrupt_on_error("Unknown token, statement expected")
 
     def _assignment_value(self):
-        """ Expected Tokens: "input" "(" ")" | name "(" [ arg_list ] ")" | expression """
+        """ Expected Tokens: "input" "(" ")" | [ "this" "." ] name "(" [ arg_list ] ")" | expression """
         if self._curr_token == Keyword.INPUT:  # input value assigned to variable
             self._next_token()
 
@@ -249,24 +342,40 @@ class Parser:
             self._next_token()
             return InputNode()
 
+        self._use_attr = False
+        if self._curr_token == Keyword.THIS:
+            if self._in_class is None:
+                interrupt_on_error("Can't use keyword 'this' outside of class methods")
+
+            self._use_attr = True
+            self._next_token()  # skip 'this'
+
+            self._check_curr_token(Separator.DOT, ". expected after 'this' keyword")
+            self._next_token()  # skip '.'
+
         if type(self._curr_token) == Identifier:  # could be expression => term => factor or start of function call
             if self._tokens[-1] == Separator.L_ROUND:
                 func_name_token = self._curr_token
+                name = self._use_func(func_name_token)
                 self._next_token()  # skip function name
                 self._next_token()  # skip "("
 
                 args = self._arg_list()
 
-                value = FunctionCallNode(func_name_token.value, args)
+                value = FunctionCallNode(name, args)
             else:
                 value = self._expression()
+
+            if self._use_attr:
+                interrupt_on_error("Class method or attribute identifier needs to follow 'this' keyword")
+
         else:
             value = self._expression()
 
         return value
 
     def _arg_list(self):
-        """ Expected Tokens: [ [ ( var1 | number ) ] { "," ( varx | number ) } [ "," ] ] ")" """
+        """ Expected Tokens: [ [ var1 | number ] { "," ( varx | number ) } [ "," ] ] ")" """
         args = []
         while True:
             if self._curr_token == Separator.R_ROUND:  # enables empty arg list
@@ -274,7 +383,8 @@ class Parser:
                 break
 
             if type(self._curr_token) == Identifier:
-                args.append(VariableNode(self._curr_token.value))
+                name = self._use_arg(self._curr_token)
+                args.append(VariableNode(name))
             elif type(self._curr_token) == Literal:
                 args.append(self._curr_token.value)
             else:
@@ -409,8 +519,9 @@ class Parser:
         """ Expected Tokens: IDENTIFIER | NUMBER | "(" expression ")" """
         if type(self._curr_token) == Identifier:
             factor = self._curr_token
+            name = self._use_var_attr(factor)
             self._next_token()
-            return VariableNode(factor.value)
+            return VariableNode(name)
 
         if type(self._curr_token) == Literal:
             factor = self._curr_token
