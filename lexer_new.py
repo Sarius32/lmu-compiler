@@ -24,6 +24,8 @@ class Keyword(Enum):
     PRINT = "print"
     INPUT = "input"
 
+    INT = "int"
+
     THIS = "this"
 
     RETURN = "return"

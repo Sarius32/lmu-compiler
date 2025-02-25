@@ -1,7 +1,7 @@
 from enum import Enum
 
 from lexer_new import Lexer, Identifier, Literal, Keyword, Separator, Operator
-from nodes import ClassNode, VariableDefNode, VariableNode, FunctionDefNode, OperationNode, AssignmentNode, \
+from nodes import ProgramNode, ClassNode, VariableDefNode, VariableNode, FunctionDefNode, OperationNode, AssignmentNode, \
     FunctionCallNode, IfThenElseNode, WhileNode, InvertNode, ComparisonNode, InputNode, WriteNode
 
 
@@ -31,26 +31,32 @@ class Parser:
         self._tokens = tokens[::-1]
         self._curr_token = self._tokens.pop()
 
-        self._nodes = []
+        classes = []
         while self._curr_token == Keyword.CLASS:
-            self._nodes.append(self._class())
+            classes.append(self._class())
 
+        funcs = []
         while self._curr_token == Keyword.FUNC:
-            self._nodes.append(self._function_def())
+            funcs.append(self._function_def())
         if self._curr_token == Keyword.CLASS:
             interrupt_on_error("Can't define classes after function definitions")
 
+        vars_ = []
         while self._curr_token == Keyword.VAR:
-            self._nodes.append(self._variable_def())
+            vars_.append(self._variable_def())
         if self._curr_token == Keyword.CLASS:
             interrupt_on_error("Can't define classes after variable definitions")
         if self._curr_token == Keyword.FUNC:
             interrupt_on_error("Can't define functions after variable definitions")
 
+        stmts = []
         while self._curr_token:
-            self._nodes.append(self._statement())
+            stmts.append(self._statement())
 
-        self._optimize()
+        self._program = ProgramNode(classes, funcs, vars_, stmts)
+
+    def get_program_ast(self):
+        return self._program
 
     def _next_token(self):
         self._curr_token = self._tokens.pop() if len(self._tokens) else None
@@ -108,7 +114,7 @@ class Parser:
         name = pre + name_token.value
         type_ = self._def_ids.get(name, None)
         if type_ is None:
-            interrupt_on_error(f"Variable '{name_token.value}' not defined previously")
+            interrupt_on_error(f"Argument '{name_token.value}' not defined previously")
 
         if type_ == IdType.Class:
             interrupt_on_error(f"Class '{name_token.value}' can't be used as a argument")
@@ -127,7 +133,7 @@ class Parser:
 
     def _use_var_attr(self, name_token, to_assign_to=False):
         pre = (self._in_class + "::") if self._in_class and (self._use_class or self._in_func) else ""
-        pre += (self._in_func + "::") if self._in_func else ""
+        pre += (self._in_func + "::") if self._in_func and not self._use_class else ""
         name = pre + name_token.value
         type_ = self._def_ids.get(name, None)
         if type_ is None:
@@ -246,8 +252,16 @@ class Parser:
         return args
 
     def _variable_def(self):
-        """ Expected Tokens: "var" name "=" expression ";" """
-        name_token = self._next_token()
+        """ Expected Tokens: "var" [ "int" | class_name ] name "=" expression ";" """
+        self._next_token()  # skip "var"
+
+        type_ = None
+        if self._curr_token != Keyword.INT:
+            self._check_curr_token(Identifier, "")
+        else:
+            self._next_token()
+
+        name_token = self._curr_token
         self._check_curr_token(Identifier, "Variable identifier must be of type Identifier")
         name = self._check_add_var(name_token)
         self._next_token()
@@ -537,13 +551,6 @@ class Parser:
         self._next_token()
 
         return expr
-
-    def _optimize(self):
-        nodes = []
-        for node in self._nodes:
-            new_node = node.optimized()
-            nodes.append(new_node) if new_node else None  # don't append if stmt collapsed into no statements
-        self._nodes = nodes
 
 
 if __name__ == "__main__":

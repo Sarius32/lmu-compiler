@@ -8,12 +8,27 @@ class Node(ABC):
     def optimized(self):
         return self
 
+@dataclass
+class ProgramNode:
+    classes: list
+    funcs: list
+    vars_: list
+    stmts: list
+
 
 @dataclass
 class ClassNode(Node):
     name: str
     vars_: list
     funcs: list
+
+    def optimized(self):
+        funcs = []
+        for func in self.funcs:
+            funcs.append(func.optimized())
+        self.funcs = funcs
+
+        return self
 
 
 @dataclass
@@ -45,7 +60,8 @@ class FunctionDefNode(Node):
         stmts = []
         for stmt in self.stmts:
             new_stmt = stmt.optimized()
-            stmts.append(new_stmt) if new_stmt else None  # don't append if stmt collapsed into no statements
+            if new_stmt:  # don't append if stmt collapsed into no statements
+                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
         self.stmts = stmts
 
         if type(self.ret) != int:
