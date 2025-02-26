@@ -1,80 +1,23 @@
+from __future__ import annotations
+
 from abc import ABC
 from dataclasses import dataclass
 
-from lexer_new import Operator
+from lexer import Operator
 
 
 class Node(ABC):
     def optimized(self):
         return self
 
-@dataclass
-class ProgramNode:
-    classes: list
-    funcs: list
-    vars_: list
-    stmts: list
 
-
-@dataclass
-class ClassNode(Node):
-    name: str
-    vars_: list
-    funcs: list
-
-    def optimized(self):
-        funcs = []
-        for func in self.funcs:
-            funcs.append(func.optimized())
-        self.funcs = funcs
-
-        return self
-
-
-@dataclass
-class VariableDefNode(Node):
-    name: str
-    value: any
-
-    def optimized(self):
-        if type(self.value) != int:
-            self.value = self.value.optimized()
-
-        return self
-
-
-@dataclass
-class VariableNode(Node):
-    name: str
-
-
-@dataclass
-class FunctionDefNode(Node):
-    name: str
-    args: list
-    vars_: list
-    stmts: list
-    ret: any
-
-    def optimized(self):
-        stmts = []
-        for stmt in self.stmts:
-            new_stmt = stmt.optimized()
-            if new_stmt:  # don't append if stmt collapsed into no statements
-                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
-        self.stmts = stmts
-
-        if type(self.ret) != int:
-            self.ret = self.ret.optimized()
-
-        return self
-
+### Expression Nodes
 
 @dataclass
 class OperationNode(Node):
-    left: any
-    operation: any
-    right: any
+    left: Expression
+    operation: Operator
+    right: Expression
 
     def optimized(self):
         op_dict = {
@@ -98,65 +41,22 @@ class OperationNode(Node):
 
 
 @dataclass
-class AssignmentNode(Node):
-    var: VariableNode
-    value: any
-
-    def optimized(self):
-        if type(self.value) != int:
-            self.value = self.value.optimized()
-
-        return self
-
-
-@dataclass
-class FunctionCallNode(Node):
-    name: str
-    args: list
-
-
-@dataclass
-class IfThenElseNode(Node):
-    condition: any
-    then: list
-    alternative: list
-
-    def optimized(self):
-        # if possible => reduce condition
-        if type(self.condition) != int:
-            self.condition = self.condition.optimized()
-
-        if type(self.condition) == int:
-            return self.then if self.condition else self.alternative
-
-
-@dataclass
-class WhileNode(Node):
-    condition: any
-    do: list
-
-
-@dataclass
 class InvertNode(Node):
-    condition: any
+    condition: 'ComparisonNode'
 
     def optimized(self):
         # if possible => reduce condition
-        if type(self.condition) != int:
-            self.condition = self.condition.optimized()
+        self.condition = self.condition.optimized() if type(self.condition) != int else None
 
         # if possible directly calculate the result and replace the node
-        if type(self.condition) == int:
-            return int(not self.condition)
-
-        return self
+        return int(not self.condition) if type(self.condition) == int else self
 
 
 @dataclass
 class ComparisonNode(Node):
-    left: any
-    operation: any
-    right: any
+    left: 'ComparisonNode' | InvertNode | UseNode | int
+    operation: Operator
+    right: 'ComparisonNode' | InvertNode | UseNode | int
 
     def optimized(self):
         op_dict = {
@@ -169,14 +69,163 @@ class ComparisonNode(Node):
         }
 
         # if possible => reduce left/right side
-        if type(self.left) != int:
-            self.left = self.left.optimized()
-        if type(self.right) != int:
-            self.right = self.right.optimized()
+        self.left = self.left.optimized() if type(self.left) != int else None
+        self.right = self.right.optimized() if type(self.right) != int else None
 
         # if possible directly calculate the result and replace the node
         if type(self.left) == int and type(self.right) == int:
             return int(op_dict[self.operation](self.left, self.right))
+
+        return self
+
+
+### Argument/Attribute/Variable Definition Nodes
+
+@dataclass
+class ArgDefNode(Node):
+    name: str
+
+
+@dataclass
+class AttributeDefNode(Node):
+    name: str
+    value: OperationNode | int
+
+    def optimized(self):
+        self.value = self.value.optimized() if type(self.value) != int else None
+        return self
+
+
+@dataclass
+class InstanceNode(Node):
+    type_: str
+
+
+@dataclass
+class VariableDefNode(Node):
+    name: str
+    value: InstanceNode | OperationNode | int
+    type_: str
+
+    def optimized(self):
+        self.value = self.value.optimized() if type(self.value) != int else None
+        return self
+
+
+### Argument/Attribute/Variable Reference/Use Nodes
+
+@dataclass
+class ArgUseNode(Node):
+    name: str
+
+
+@dataclass
+class AttrUseNode(Node):
+    name: str
+
+
+@dataclass
+class VarUseNode(Node):
+    name: str
+
+
+@dataclass
+class InstAttrUseNode(Node):
+    class_name: str
+    name: str
+
+
+UseNode = ArgUseNode | AttrUseNode | VarUseNode | InstAttrUseNode
+
+
+### Function/Method Definition Nodes
+
+
+@dataclass
+class MethodDefNode(Node):
+    name: str
+    args: list[ArgDefNode]
+    vars_: list[VariableDefNode]
+    stmts: list['Statement']
+    ret: 'Expression'
+
+    def optimized(self):
+        stmts = []
+        for stmt in self.stmts:
+            new_stmt = stmt.optimized()
+            if new_stmt:  # don't append if stmt collapsed into no statements
+                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
+        self.stmts = stmts
+
+        self.ret = self.ret.optimized() if type(self.ret) != int else None
+
+        return self
+
+
+class FunctionDefNode(MethodDefNode):
+    ...
+
+
+### Function/Method Call Nodes
+
+
+Expression = UseNode | OperationNode | int
+
+
+@dataclass
+class FuncCallNode(Node):
+    name: str
+    args: list[Expression]
+
+
+@dataclass
+class MethodCallNode(Node):
+    name: str
+    args: list[Expression]
+
+
+@dataclass
+class InstMethodCallNode(Node):
+    class_name: str
+    name: str
+    args: list[Expression]
+
+
+CallNode = FuncCallNode | MethodCallNode | InstMethodCallNode
+
+
+### Statement Nodes
+
+
+@dataclass
+class WriteNode(Node):
+    expr: Expression | None
+
+
+@dataclass
+class IfThenElseNode(Node):
+    condition: 'ComparisonNode'
+    then: list['Statement']
+    alternative: list['Statement']
+
+    def optimized(self):
+        # if possible => reduce condition
+        self.condition = self.condition.optimized() if type(self.condition) != int else None
+
+        if type(self.condition) == int:
+            return self.then if self.condition else self.alternative
+
+
+@dataclass
+class WhileNode(Node):
+    condition: 'ComparisonNode'
+    do: list['Statement']
+
+    def optimized(self):
+        # if possible => reduce condition
+        self.condition = self.condition.optimized() if type(self.condition) != int else None
+
+        self.do = [do.optimized() for do in self.do]
 
         return self
 
@@ -187,5 +236,41 @@ class InputNode(Node):
 
 
 @dataclass
-class WriteNode(Node):
-    expr: any
+class AssignmentNode(Node):
+    var: UseNode
+    value: InputNode | Expression
+
+    def optimized(self):
+        self.value = self.value.optimized() if type(self.value) != int else None
+
+        return self
+
+
+Statement = WriteNode | IfThenElseNode | WhileNode | AssignmentNode | CallNode
+
+
+### Container Nodes
+
+@dataclass
+class ClassNode(Node):
+    name: str
+    attrs: list[AttributeDefNode]
+    methods: list[MethodDefNode]
+
+    def optimized(self):
+        self.methods = [method.optimized() for method in self.methods]
+        return self
+
+
+@dataclass
+class ProgramNode(Node):
+    classes: list[ClassNode]
+    funcs: list[FunctionDefNode]
+    vars_: list[VariableDefNode]
+    stmts: list[Statement]
+
+    def optimized(self):
+        self.classes = [class_.optimized() for class_ in self.classes]
+        self.funcs = [func.optimized() for func in self.funcs]
+        self.stmts = [stmt.optimized() for stmt in self.stmts]
+        return self
