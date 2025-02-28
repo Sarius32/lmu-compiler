@@ -64,7 +64,7 @@ class Lexer:
                 if char in OPERATORS:
                     self._handle_symbol()
 
-                    if line[self._curr_column + 1] == "=":
+                    if self._curr_column + 1 < len(line) and line[self._curr_column + 1] == "=":
                         self._tokens.append(Operator(char + "="))
                         self._curr_column += 1
                     else:

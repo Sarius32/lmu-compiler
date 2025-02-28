@@ -16,9 +16,8 @@ class Keyword(Enum):
     CLASS = "class"
     THIS = "this"
 
-    VAR = "var"
-    ATTR = "attr"
     INT = "int"
+    INST = "inst"
 
     FUNC = "function"
     METHOD = "method"

@@ -1,34 +1,53 @@
-class Test {
-    attr int a = 1;
-    attr int b = 2;
+class Car {
+    int wheels = 0;
 
-    method beta ( arg1 ) {
-        var int a = 6;
+    method addWheel() {
+        this.wheels = this.wheels + 1;
+        return this.wheels;
+    }
 
+    method removeWheel() {
+        if ( this.wheels > 0 ) then {
+            this.wheels = this.wheels - 1;
+        }
+        return this.wheels;
+    }
 
-        if ( 1==1+1) then {
-            a = arg1;
-            a = 3;
-        } else {
-            a = 2;  #  a = 2
+    method printWheels() {
+        print( this.wheels );
+    }
+
+    method printWheelsRep( num ) {
+        int i = 0;
+        while (i < num) do {
+            this.printWheels();
+            i = i+1;
         }
     }
 }
 
-function beta ( argx ) {
-    var int x = 1;
-
-    x = 2;
-
-    x = 1;
-
-    beta(3);
-
+function exit(n) {
+    print(n);
 }
 
-var Test testing;
-var int a = 2;
+function count( n ) {
+    int i = 1;
 
-beta(1);
+    i = n;
+    return;
 
-testing.beta(testing.beta(2));
+    exit(0);
+}
+
+int wheels = 0;
+inst Car car;
+
+wheels = input();
+
+car.wheels = wheels;
+
+while ( wheels < car.wheels ) do {
+    wheels = 0;
+    print(car.wheels);
+    return;
+}

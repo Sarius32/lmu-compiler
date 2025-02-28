@@ -7,7 +7,7 @@ from lexer import Operator
 
 
 class Node(ABC):
-    def optimized(self):
+    def get_pre_evaluated(self):
         return self
 
 
@@ -19,7 +19,13 @@ class OperationNode(Node):
     operation: Operator
     right: Expression
 
-    def optimized(self):
+    def get_identifiers(self):
+        ids = set()
+        ids.update(self.left.get_identifiers() if type(self.left) != int else [])
+        ids.update(self.right.get_identifiers() if type(self.right) != int else [])
+        return ids
+
+    def get_pre_evaluated(self):
         op_dict = {
             Operator.PLUS: lambda left, right: int(left + right),
             Operator.MINUS: lambda left, right: int(left - right),
@@ -28,10 +34,8 @@ class OperationNode(Node):
         }
 
         # if possible => reduce left/right side
-        if type(self.left) != int:
-            self.left = self.left.optimized()
-        if type(self.right) != int:
-            self.right = self.right.optimized()
+        self.left = self.left.get_pre_evaluated() if type(self.left) != int else self.left
+        self.right = self.right.get_pre_evaluated() if type(self.right) != int else self.right
 
         # if possible directly calculate the result and replace the node
         if type(self.left) == int and type(self.right) == int:
@@ -42,11 +46,14 @@ class OperationNode(Node):
 
 @dataclass
 class InvertNode(Node):
-    condition: 'ComparisonNode'
+    condition: ComparisonNode
 
-    def optimized(self):
+    def get_identifiers(self):
+        return set(self.condition.get_identifiers() if type(self.condition) != int else [])
+
+    def get_pre_evaluated(self):
         # if possible => reduce condition
-        self.condition = self.condition.optimized() if type(self.condition) != int else None
+        self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
 
         # if possible directly calculate the result and replace the node
         return int(not self.condition) if type(self.condition) == int else self
@@ -54,11 +61,17 @@ class InvertNode(Node):
 
 @dataclass
 class ComparisonNode(Node):
-    left: 'ComparisonNode' | InvertNode | UseNode | int
+    left: ComparisonNode | InvertNode | UseNode | int
     operation: Operator
-    right: 'ComparisonNode' | InvertNode | UseNode | int
+    right: ComparisonNode | InvertNode | UseNode | int
 
-    def optimized(self):
+    def get_identifiers(self):
+        ids = set()
+        ids.update(self.left.get_identifiers() if type(self.left) != int else [])
+        ids.update(self.right.get_identifiers() if type(self.right) != int else [])
+        return ids
+
+    def get_pre_evaluated(self):
         op_dict = {
             Operator.EQUALS: lambda left, right: int(left == right),
             Operator.SMALLER: lambda left, right: int(left < right),
@@ -69,8 +82,8 @@ class ComparisonNode(Node):
         }
 
         # if possible => reduce left/right side
-        self.left = self.left.optimized() if type(self.left) != int else None
-        self.right = self.right.optimized() if type(self.right) != int else None
+        self.left = self.left.get_pre_evaluated() if type(self.left) != int else self.left
+        self.right = self.right.get_pre_evaluated() if type(self.right) != int else self.right
 
         # if possible directly calculate the result and replace the node
         if type(self.left) == int and type(self.right) == int:
@@ -91,8 +104,8 @@ class AttributeDefNode(Node):
     name: str
     value: OperationNode | int
 
-    def optimized(self):
-        self.value = self.value.optimized() if type(self.value) != int else None
+    def get_pre_evaluated(self):
+        self.value = self.value.get_pre_evaluated() if type(self.value) != int else self.value
         return self
 
 
@@ -107,35 +120,37 @@ class VariableDefNode(Node):
     value: InstanceNode | OperationNode | int
     type_: str
 
-    def optimized(self):
-        self.value = self.value.optimized() if type(self.value) != int else None
+    def get_pre_evaluated(self):
+        self.value = self.value.get_pre_evaluated() if type(self.value) != int else self.value
         return self
 
 
 ### Argument/Attribute/Variable Reference/Use Nodes
 
+class UseNode(Node):
+    def get_identifiers(self):
+        return self
+
+
 @dataclass
-class ArgUseNode(Node):
+class ArgUseNode(UseNode):
     name: str
 
 
 @dataclass
-class AttrUseNode(Node):
+class AttrUseNode(UseNode):
     name: str
 
 
 @dataclass
-class VarUseNode(Node):
+class VarUseNode(UseNode):
     name: str
 
 
 @dataclass
-class InstAttrUseNode(Node):
+class InstAttrUseNode(UseNode):
     class_name: str
     name: str
-
-
-UseNode = ArgUseNode | AttrUseNode | VarUseNode | InstAttrUseNode
 
 
 ### Function/Method Definition Nodes
@@ -146,18 +161,15 @@ class MethodDefNode(Node):
     name: str
     args: list[ArgDefNode]
     vars_: list[VariableDefNode]
-    stmts: list['Statement']
-    ret: 'Expression'
+    stmts: list[Statement]
 
-    def optimized(self):
+    def get_pre_evaluated(self):
         stmts = []
         for stmt in self.stmts:
-            new_stmt = stmt.optimized()
-            if new_stmt:  # don't append if stmt collapsed into no statements
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
                 stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
         self.stmts = stmts
-
-        self.ret = self.ret.optimized() if type(self.ret) != int else None
 
         return self
 
@@ -173,25 +185,30 @@ Expression = UseNode | OperationNode | int
 
 
 @dataclass
-class FuncCallNode(Node):
+class CallNode(Node):
     name: str
     args: list[Expression]
 
+    def get_identifiers(self):
+        ids = set()
+        for arg in self.args:
+            ids.update(arg.get_identifiers() if type(arg) != int else [])
+        return ids
+
 
 @dataclass
-class MethodCallNode(Node):
-    name: str
-    args: list[Expression]
+class FuncCallNode(CallNode):
+    ...
 
 
 @dataclass
-class InstMethodCallNode(Node):
+class MethodCallNode(CallNode):
+    ...
+
+
+@dataclass
+class InstMethodCallNode(CallNode):
     class_name: str
-    name: str
-    args: list[Expression]
-
-
-CallNode = FuncCallNode | MethodCallNode | InstMethodCallNode
 
 
 ### Statement Nodes
@@ -204,13 +221,28 @@ class WriteNode(Node):
 
 @dataclass
 class IfThenElseNode(Node):
-    condition: 'ComparisonNode'
-    then: list['Statement']
-    alternative: list['Statement']
+    condition: ComparisonNode
+    then: list[Statement]
+    alternative: list[Statement]
 
-    def optimized(self):
+    def get_pre_evaluated(self):
         # if possible => reduce condition
-        self.condition = self.condition.optimized() if type(self.condition) != int else None
+        self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
+
+        then = []
+        for stmt in self.then:
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
+                then.append(new_stmt) if type(new_stmt) != list else [then.append(stmt_) for stmt_ in new_stmt]
+        self.then = then
+
+        alternative = []
+        for stmt in self.alternative:
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
+                alternative.append(new_stmt) if type(new_stmt) != list else [alternative.append(stmt_) for stmt_ in
+                                                                             new_stmt]
+        self.alternative = alternative
 
         if type(self.condition) == int:
             return self.then if self.condition else self.alternative
@@ -218,14 +250,19 @@ class IfThenElseNode(Node):
 
 @dataclass
 class WhileNode(Node):
-    condition: 'ComparisonNode'
-    do: list['Statement']
+    condition: ComparisonNode
+    do: list[Statement]
 
-    def optimized(self):
+    def get_pre_evaluated(self):
         # if possible => reduce condition
-        self.condition = self.condition.optimized() if type(self.condition) != int else None
+        self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
 
-        self.do = [do.optimized() for do in self.do]
+        do = []
+        for stmt in self.do:
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
+                do.append(new_stmt) if type(new_stmt) != list else [do.append(stmt_) for stmt_ in new_stmt]
+        self.do = do
 
         return self
 
@@ -240,13 +277,21 @@ class AssignmentNode(Node):
     var: UseNode
     value: InputNode | Expression
 
-    def optimized(self):
-        self.value = self.value.optimized() if type(self.value) != int else None
-
+    def get_pre_evaluated(self):
+        self.value = self.value.get_pre_evaluated() if type(self.value) != int else self.value
         return self
 
 
-Statement = WriteNode | IfThenElseNode | WhileNode | AssignmentNode | CallNode
+@dataclass
+class ReturnNode(Node):
+    expr: Expression
+
+    def get_pre_evaluated(self):
+        self.expr = self.expr.get_pre_evaluated() if type(self.expr) != int else self.expr
+        return self
+
+
+Statement = WriteNode | IfThenElseNode | WhileNode | AssignmentNode | CallNode | ReturnNode
 
 
 ### Container Nodes
@@ -257,8 +302,8 @@ class ClassNode(Node):
     attrs: list[AttributeDefNode]
     methods: list[MethodDefNode]
 
-    def optimized(self):
-        self.methods = [method.optimized() for method in self.methods]
+    def get_pre_evaluated(self):
+        self.methods = [method.get_pre_evaluated() for method in self.methods]
         return self
 
 
@@ -269,8 +314,15 @@ class ProgramNode(Node):
     vars_: list[VariableDefNode]
     stmts: list[Statement]
 
-    def optimized(self):
-        self.classes = [class_.optimized() for class_ in self.classes]
-        self.funcs = [func.optimized() for func in self.funcs]
-        self.stmts = [stmt.optimized() for stmt in self.stmts]
+    def get_pre_evaluated(self):
+        self.classes = [class_.get_pre_evaluated() for class_ in self.classes]
+        self.funcs = [func.get_pre_evaluated() for func in self.funcs]
+
+        stmts = []
+        for stmt in self.stmts:
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
+                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
+        self.stmts = stmts
+
         return self
