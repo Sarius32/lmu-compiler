@@ -70,11 +70,13 @@ class CodeGenerator:
         for _, statement in enumerate(self._syntax_tree.stmts):
             self._handle_statement(statement)
 
+        ###Just to check all variables in the end ... for development/testing reasons
         for var in self._var_dict.values():
             address = var.address
             self._add_line("LOD", [0, address])
             self._add_line("WRI", [])
-
+        ###
+        
         self._add_line("HLT", [])
 
     def _declare_variables(self, var_list: list[VariableDefNode], t):
