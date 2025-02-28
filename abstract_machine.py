@@ -197,5 +197,6 @@ class AbstractMachine:
 
 
 if __name__ == "__main__":
-    machine = AbstractMachine("test_object_code.loc")
+    #machine = AbstractMachine("test_object_code.loc")
+    machine = AbstractMachine("generated_code.txt")
     machine.run()

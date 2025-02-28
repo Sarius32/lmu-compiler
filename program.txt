@@ -1,20 +1,8 @@
-CLASS myclass1{
-	j = (1 + 2) * 5;
-}
+int a = 0;
+int b = 5;
+int c = 0;
+int d = 7;
 
-CLASS c2{
-	CONST int c6 = 100;
-	VAR int i;
-	i = 65 * 3;
-}
+a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
 
-MAIN{
-	CONST Tree t = 1 ;
-	CONST Tree t4 = 1 ;
-	VAR int   i;
-	VAR int r;
-	i=3;
-	t4 =564;
-	r= 0;
-}
-
+c = a + b;
