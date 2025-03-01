@@ -72,6 +72,7 @@ class CodeGenerator:
         self._global_var_dict = dict[str, VariableStore]()
         self._context_var_dict = dict[str, VariableStore]() #TO DO: solve context attributes, variables ... verschachtelung!!
         self._context_class = str()
+        self._context_method = str()
         self._type_dict = dict[str, TypeStore]()
 
         self._return_adress = 0
@@ -108,11 +109,11 @@ class CodeGenerator:
             self._handle_statement(statement)
 
         ###Just to check all variables in the end ... for development/testing reasons
-        for var in self._global_var_dict.values():
-            address = var.address
-            self._add_line("LOD", [0, address])
-            self._add_line("WRI", [])
-        ###
+        # for var in self._global_var_dict.values():
+        #     address = var.address
+        #     self._add_line("LOD", [0, address])
+        #     self._add_line("WRI", [])
+        # ###
 
         self._add_line("HLT", [])
 
@@ -167,6 +168,8 @@ class CodeGenerator:
             var_store = dict[str, VariableStore]() #Variables of Method
             methods_dict[method.name] = MethodStore(method.name, line, m_parameter, var_store)
 
+            self._context_method = method.name
+
             #Args are only ints!! ArgDefNodes are untyped
             #First arg is Object calling the Method:  Bsp. Stack... MAIN... parameter3, parameter2, parameter1, (this.x, this.y)Object, Dynamic,RET,B, ...Method...
             arg_offs = -size
@@ -174,7 +177,7 @@ class CodeGenerator:
             #Parameter
             for _, arg in enumerate(method.args):
                 arg_offs -= 1 #-1 for int
-                m_parameter[arg] = (arg_offs, "int")
+                m_parameter[arg.name] = (arg_offs, "int")
 
             #Return Value (only int)
             self._return_adress = arg_offs - 1
@@ -286,6 +289,17 @@ class CodeGenerator:
         base = 0 #In current Method
         self._add_line("LOD", [base, address])
 
+
+            
+    def _load_arg(self, arg: ArgUseNode):
+        type_store = self._type_dict[self._context_class]
+        method_store = type_store.methods[self._context_method]
+        (offset, type_) = method_store.parameter[arg.name]
+
+        address = offset #Computed already in class making
+        base = 0 #In current Method
+        self._add_line("LOD", [base, address])
+
             
     def _store_attribute(self, attribute: AttrUseNode):
         ### EINFÜGEN und in externe Methode auslagern
@@ -302,12 +316,16 @@ class CodeGenerator:
         base = 0 #In current Method
         self._add_line("STO", [base, address])
 
+    def _handle_write(self, write_node: WriteNode):
+        self._handle_expression(write_node.expr)
+        self._add_line("WRI", [])
+
     def _handle_statement(self, statement: Statement):
         match statement:
             case AssignmentNode():
                 self._handle_assignment(statement.var, statement.value)
-            # case WriteNode(): TO DO 
-            #     statement
+            case WriteNode():
+                self._handle_write(statement)
             case IfThenElseNode():
                 self._handle_if_else(statement)
             # case WhileNode():
@@ -366,8 +384,8 @@ class CodeGenerator:
         #5.2 delete Arg copies
         self._add_line("INC", [-arg_count]) #base should b 0
 
-        ####Handle Return!!!
-        self._add_line("WRI", [])
+        ####TO DO: Handle Return!!!
+        self._add_line("INC", [-1])
 
             
 
@@ -425,8 +443,8 @@ class CodeGenerator:
         match use_node:
             case VarUseNode():
                 self._load_var(use_node)
-            # case ArgUseNode():
-            #     use_node
+            case ArgUseNode():
+                self._load_arg(use_node)
             case AttrUseNode():
                 self._load_attribute(use_node)
             case InstAttrUseNode():

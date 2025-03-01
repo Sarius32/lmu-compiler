@@ -11,7 +11,7 @@ INC 1
 LIT 0 
 STO 0 3 # VAR: int 0_w 
 LOD 0 3 
-LIT 1 
+LOD 0 -3 
 OPR + 
 STO 0 3 
 LOD 0 -1 
@@ -19,7 +19,7 @@ LOD 0 3
 OPR + 
 STO 0 -1 
 LOD 0 3 
-STO 0 -3 
+STO 0 -4 
 RET 
 INC 0 # MAIN: (delete later) 
 INC 10 
@@ -84,50 +84,19 @@ STO 0 11
 LOD 0 11 
 LIT 555 
 OPR = 
-JOF 112 
+JOF 97 
 LIT 0 
+LIT 13 
 LOD 0 6 
 LOD 0 5 
 CAL 0 8 
 STO 0 5 
 STO 0 6 
-INC 0 
+INC -1 
 WRI 
-LIT 0 
-LOD 0 6 
-LOD 0 5 
-CAL 0 8 
-STO 0 5 
-STO 0 6 
-INC 0 
-WRI 
-LIT 0 
-LOD 0 6 
-LOD 0 5 
-CAL 0 8 
-STO 0 5 
-STO 0 6 
-INC 0 
-WRI 
-JMP 112 
-LOD 0 3 
-WRI 
-LOD 0 4 
-WRI 
-LOD 0 5 
-WRI 
+JMP 97 
 LOD 0 6 
 WRI 
-LOD 0 7 
-WRI 
-LOD 0 8 
-WRI 
-LOD 0 9 
-WRI 
-LOD 0 10 
-WRI 
-LOD 0 11 
-WRI 
-LOD 0 12 
+LOD 0 5 
 WRI 
 HLT 

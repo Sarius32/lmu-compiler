@@ -2,16 +2,16 @@ class Car {
     int wheels = 11;
     int color = 63;
 
-    method addWheel() {
+    method addWheel( num ) {
         int w = 0;
-        w = w + 1;
+        w = w + num;
         this.wheels = this.wheels + w;
 		return w;
     }
 }
 
 inst Car c1; #10, 63
-inst Car c2; #14, 42
+inst Car c2; #24, 42
 
 int a = 0; #3
 int b = 5; #5
@@ -39,7 +39,9 @@ else{
 
 # PROBLEM: ComparisonNode is not defined as OperationNode: 554+1 ... if (e == 554+1) then {}
 if (e == 555) then {
-    c2.addWheel();
-    c2.addWheel();
-    c2.addWheel();
+    c2.addWheel( 13 );
+    #PROBLEM: add_w = c2.addWheel( 13 ); not possible, because Assignment can not be a Call
 }
+
+print( c2.color ); #42
+print( c2.wheels ); #24
