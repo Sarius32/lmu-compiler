@@ -237,11 +237,27 @@ class CodeGenerator:
         attribute_name = inst_attribute.name
 
         variable_type = self._type_dict[variable.type_] #Get type of variable
-        (offset, attribute_type) = variable_type.instance_vars[attribute_name]
+        (offset, _) = variable_type.instance_vars[attribute_name]
 
         address = variable.address + offset
         base = self._current_base - variable.base
         self._add_line("STO", [base, address])
+            
+    def _load_inst_attribute(self, inst_attribute: InstAttrUseNode):
+        ### EINFÜGEN und in externe Methode auslagern
+        # if variable.name in self._context_var_dict:
+        #     var = self._context_var_dict[variable.name]
+        # else:
+        #     var = self._global_var_dict[variable.name]
+        variable = self._global_var_dict[inst_attribute.class_name]
+        attribute_name = inst_attribute.name
+
+        variable_type = self._type_dict[variable.type_] #Get type of variable
+        (offset, _) = variable_type.instance_vars[attribute_name]
+
+        address = variable.address + offset
+        base = self._current_base - variable.base
+        self._add_line("LOD", [base, address])
 
     def _handle_statement(self, statement: Statement):
         match statement:
@@ -281,8 +297,8 @@ class CodeGenerator:
             #     None
             #case AttrUseNode():
             #    self._load_var(expression.name)
-            #case InstAttrUseNode():
-            #     None
+            case InstAttrUseNode():
+                self._load_inst_attribute(expression)
             case _:
                 raise TypeError(f"Unexpected type: {type(expression)} in Expression")
 
