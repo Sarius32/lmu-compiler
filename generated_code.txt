@@ -16,23 +16,27 @@ OPR +
 STO 1 -3 
 RET 
 INC 0 # MAIN: (delete later) 
-INC 6 
+INC 8 
 INC 2 
 CAL 0 2 
 STO 0 3 # VAR: Car 0_c1 
 STO 0 4 # VAR: Car 1_c1 
+INC 2 
+CAL 0 2 
+STO 0 5 # VAR: Car 0_c2 
+STO 0 6 # VAR: Car 1_c2 
 LIT 0 
-STO 0 5 # VAR: int 0_a 
+STO 0 7 # VAR: int 0_a 
 LIT 5 
-STO 0 6 # VAR: int 0_b 
+STO 0 8 # VAR: int 0_b 
 LIT 0 
-STO 0 7 # VAR: int 0_c 
+STO 0 9 # VAR: int 0_c 
 LIT 7 
-STO 0 8 # VAR: int 0_d 
+STO 0 10 # VAR: int 0_d 
 LIT 2 
 LIT 3 
 OPR * 
-LOD 0 8 
+LOD 0 10 
 LIT 13 
 OPR - 
 LIT 3 
@@ -42,12 +46,18 @@ LIT 10
 OPR - 
 OPR / 
 OPR + 
-STO 0 5 
-LOD 0 5 
-LOD 0 6 
-OPR + 
 STO 0 7 
+LOD 0 7 
+LOD 0 8 
+OPR + 
+STO 0 9 
+LIT 10 
+STO 0 3 
+LIT 42 
+STO 0 6 
 LOD 0 3 
+WRI 
+LOD 0 4 
 WRI 
 LOD 0 5 
 WRI 
@@ -56,5 +66,9 @@ WRI
 LOD 0 7 
 WRI 
 LOD 0 8 
+WRI 
+LOD 0 9 
+WRI 
+LOD 0 10 
 WRI 
 HLT 

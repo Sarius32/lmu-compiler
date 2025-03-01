@@ -121,7 +121,7 @@ class CodeGenerator:
         method_name = "CONSTRUCTOR"
         methods_dict[method_name] = MethodStore(method_name, line, {}, {})
         for index, attribute in enumerate(class_node.attrs):
-            attributes[attribute.name] = (index, "int")
+            attributes[attribute.name] = (size, "int")
             size += 1 #If not only ints, CHANGE
             
             match attribute.value:
@@ -222,11 +222,27 @@ class CodeGenerator:
             #     self._store_var(var)
             # case AttrUseNode():
             #     self._store_var(var)
-            # case InstAttrUseNode():
-            #     self._store_var(var)
+            case InstAttrUseNode():
+                self._store_inst_attribute(var)
             case _:
                 raise TypeError(f"Unexpected type: {type(var)} for variable in assignment")
-    
+            
+    def _store_inst_attribute(self, inst_attribute: InstAttrUseNode):
+        ### EINFÜGEN und in externe Methode auslagern
+        # if variable.name in self._context_var_dict:
+        #     var = self._context_var_dict[variable.name]
+        # else:
+        #     var = self._global_var_dict[variable.name]
+        variable = self._global_var_dict[inst_attribute.class_name]
+        attribute_name = inst_attribute.name
+
+        variable_type = self._type_dict[variable.type_] #Get type of variable
+        (offset, attribute_type) = variable_type.instance_vars[attribute_name]
+
+        address = variable.address + offset
+        base = self._current_base - variable.base
+        self._add_line("STO", [base, address])
+
     def _handle_statement(self, statement: Statement):
         match statement:
             case AssignmentNode():

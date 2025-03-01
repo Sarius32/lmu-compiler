@@ -8,13 +8,18 @@ class Car {
     }
 }
 
-inst Car c1;
+inst Car c1; #10, 3
+inst Car c2; #2, 42
 
-int a = 0;
-int b = 5;
-int c = 0;
-int d = 7;
+int a = 0; #3
+int b = 5; #5
+int c = 0; #8
+int d = 7; #7
 
 a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
 
 c = a + b;
+
+
+c1.wheels = 10;
+c2.color = 42;
