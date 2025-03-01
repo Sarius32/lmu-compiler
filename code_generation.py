@@ -234,8 +234,8 @@ class CodeGenerator:
         match value:
             case _ if is_expression(value):
                 self._handle_expression(value)
-            #case InputNode():
-            #    None
+            case InputNode():
+                self._add_line("REA", [])
             case _:
                 raise TypeError(f"Unexpected type: {type(value)} for value of assignment")
 
@@ -301,6 +301,16 @@ class CodeGenerator:
         self._add_line("LOD", [base, address])
 
             
+    def _store_arg(self, arg: ArgUseNode):
+        type_store = self._type_dict[self._context_class]
+        method_store = type_store.methods[self._context_method]
+        (offset, type_) = method_store.parameter[arg.name]
+
+        address = offset #Computed already in class making
+        base = 0 #In current Method
+        self._add_line("STO", [base, address])
+
+            
     def _store_attribute(self, attribute: AttrUseNode):
         ### EINFÜGEN und in externe Methode auslagern
         # if variable.name in self._context_var_dict:
@@ -344,12 +354,52 @@ class CodeGenerator:
         match call_node:
             case InstMethodCallNode():
                 self._inst_method_call(call_node)
-            # case MethodCallNode():
-            #     call_node
+            case MethodCallNode():
+                self._method_call(call_node)
             # case FuncCallNode():
             #     call_node
             case _:
                 raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")
+    
+    def _method_call(self, call_node : MethodCallNode):
+        #1. Add return_value storage
+        self._add_line("INC", [1]) #change for bigger types
+
+        #2. Push Parameters on stack, reversed
+        arg_count = 0
+        for param in call_node.args[::-1]:
+            arg_count += 1
+            self._handle_expression(param)
+        
+        call_node
+        
+        self._context_method
+        #3. Push Objec on stack
+        type_store = self._type_dict[self._context_class]
+
+        type_size = type_store.size
+        for i in range(type_size): #Can use inst_var dictionary to be type sensitive vor attributes!!!
+            self._add_line("LOD", [0, -type_size+i]) #base should b 0
+
+        #4. Call Method
+        method = type_store.methods[call_node.name]
+        self._add_line("CAL", [0, method.adress]) 
+
+        #5. CleanUp after Return
+        #5.1 object back
+        for i in range(type_size):
+            self._add_line("STO", [0, -i-1]) #base should b 0
+
+        # for (offset, type_) in type_store.instance_vars:
+        #     self._add_line("STO", [0, base_adress+offset]) #base should b 0
+            
+        #5.2 delete Arg copies
+        self._add_line("INC", [-arg_count]) #base should b 0
+
+        ####TO DO: Handle Return!!!
+        self._add_line("INC", [-1])
+
+
     def _inst_method_call(self, call_node : InstMethodCallNode):
         #1. Add return_value storage
         self._add_line("INC", [1]) #change for bigger types
@@ -432,7 +482,7 @@ class CodeGenerator:
 
         #4. Jump to condition
         self._add_line("JMP", [condition_line])
-        
+
         ###
         end_adress.append(self._get_line_number())
 
@@ -479,8 +529,8 @@ class CodeGenerator:
         match use_node:
             case VarUseNode():
                 self._store_var(use_node)
-            # case ArgUseNode():
-            #     use_node
+            case ArgUseNode():
+                self._store_arg(use_node)
             case AttrUseNode():
                 self._store_attribute(use_node)
             case InstAttrUseNode():
@@ -556,7 +606,8 @@ class CodeGenerator:
 
 
 if __name__ == "__main__":
-    lexer = Lexer("program.txt")
+    #lexer = Lexer("program.txt")
+    lexer = Lexer("token_test.lmu")
     tokens = lexer.get_tokens()
     parser = Parser(tokens)
     abstract_syntax_tree = parser.get_program_ast()
