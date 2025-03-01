@@ -15,7 +15,7 @@ int a = 0; #3
 int b = 5; #5
 int c = 0; #8
 int d = 7; #7
-int e = 0; #11
+int e = 0; #555
 
 a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
 
@@ -24,4 +24,11 @@ c = a + b;
 
 c1.wheels = 10;
 c2.color = 42;
-e = c2.wheels;
+e = c2.wheels + 1;
+
+if ( e <= 11 ) then {
+    e = e + 6;
+}
+else{
+    e = 555;
+}

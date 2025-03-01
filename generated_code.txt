@@ -58,6 +58,20 @@ STO 0 3
 LIT 42 
 STO 0 6 
 LOD 0 5 
+LIT 1 
+OPR + 
+STO 0 11 
+LOD 0 11 
+LIT 11 
+OPR > 
+OPR ! 
+JOF 73 
+LOD 0 11 
+LIT 6 
+OPR + 
+STO 0 11 
+JMP 75 
+LIT 555 
 STO 0 11 
 LOD 0 3 
 WRI 

@@ -7,6 +7,7 @@ from nodes import ArgDefNode, AttributeDefNode, InstanceNode, ReturnNode, Variab
     IfThenElseNode, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
     ComparisonNode, Expression, Statement, UseNode, CallNode
 
+from tokens import Operator
 from variable import MethodStore, TypeStore, VariableStore
 
 
@@ -22,6 +23,24 @@ def is_statment(value) -> bool:
         
 def is_callNode(value) -> bool:
     return isinstance(value, (FuncCallNode, MethodCallNode, InstMethodCallNode))
+
+def convert_operator(op: Operator) -> tuple[str, bool]:
+    match op:
+        case Operator.EQUALS:
+            return ("=", False)
+        case Operator.SMALLER:
+            return ("<", False)
+        case Operator.SMALLER_EQ:
+            return (">", True)
+        case Operator.GREATER:
+            return (">", False)
+        case Operator.GREATER_EQ:
+            return ("<", True)
+        case Operator.NOT_EQUAL:
+            return ("=", True)
+        case _:
+            raise ValueError(f"Unexpected value: {op.name} of Operator")
+
 
 class CodeGenerator:
     _code = list[tuple[str, list[str]]]()
@@ -120,7 +139,7 @@ class CodeGenerator:
 
         method_name = "CONSTRUCTOR"
         methods_dict[method_name] = MethodStore(method_name, line, {}, {})
-        for index, attribute in enumerate(class_node.attrs):
+        for _, attribute in enumerate(class_node.attrs):
             attributes[attribute.name] = (size, "int")
             size += 1 #If not only ints, CHANGE
             
@@ -265,8 +284,8 @@ class CodeGenerator:
                 self._handle_assignment(statement.var, statement.value)
             # case WriteNode(): TO DO 
             #     statement
-            # case IfThenElseNode():
-            #     statement
+            case IfThenElseNode():
+                self._handle_if_else(statement)
             # case WhileNode():
             #     statement
             case ReturnNode():
@@ -278,6 +297,69 @@ class CodeGenerator:
             #    statement
             case _:
                 raise TypeError(f"Unexpected type: {type(statement)} for a statment")
+
+    def _handle_if_else(self, if_else_node: IfThenElseNode):
+        #1. Evaluate condition
+        jump_on = self._handle_comparison_node(if_else_node.condition)
+        
+        #2. Jump to else if condition is false
+        # if jump_on:
+        #     else_adress = self._add_line("JOF", []) #Jump on opposite to else
+        # else:
+        else_adress = self._add_line("JOF", [])
+
+        #3. If-statments
+        for statement in if_else_node.then:
+            self._handle_statement(statement)
+
+        #4. Jump to end/after else
+        end_adress = self._add_line("JMP", [])
+
+        #5. Else stament
+        else_adress.append(self._get_line_number())
+        for statement in if_else_node.alternative:
+            self._handle_statement(statement)
+        
+        ###
+        end_adress.append(self._get_line_number())
+
+
+    def _handle_comparison_node(self, comp_node: ComparisonNode) -> bool:
+        self._handle_comparison_part(comp_node.left)
+        self._handle_comparison_part(comp_node.right)
+        (operator, is_not) = convert_operator(comp_node.operation)
+        self._add_line("OPR", [operator])
+        if is_not: #Statment needs to be negated
+            self._add_line("OPR", ["!"])
+        
+
+
+    def _handle_comparison_part(self, node_lr: ComparisonNode | InvertNode | UseNode | int):
+        match node_lr:
+            case int():
+                self._add_line("LIT", [node_lr])
+            case ComparisonNode():
+                self._handle_comparison_node(node_lr)
+            case InvertNode():
+                self._handle_comparison_node(node_lr.condition)
+                self._add_line("OPR", ["!"])
+            case UseNode():
+                self._handle_use_node(node_lr)
+            case _:
+                raise TypeError(f"Unexpected type: {type(node_lr)} in Comparison PART")
+    
+    def _handle_use_node(self, use_node: UseNode):
+        match use_node:
+            case VarUseNode():
+                self._load_var(use_node)
+            # case ArgUseNode():
+            #     use_node
+            # case AttrUseNode():
+            #     use_node
+            case InstAttrUseNode():
+                self._load_inst_attribute(use_node)
+            case _:
+                raise TypeError(f"Unexpected type: {type(use_node)} in Handle use node")
 
 
     def _handle_operation(self, operationNode: OperationNode):
