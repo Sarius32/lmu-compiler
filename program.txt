@@ -4,18 +4,22 @@ class Car {
 
     method addWheel() {
         int w = 0;
-		return w + 1;
+        w = w + 1;
+        this.wheels = this.wheels + w;
+		return w;
     }
 }
 
 inst Car c1; #10, 63
-inst Car c2; #11, 42
+inst Car c2; #14, 42
 
 int a = 0; #3
 int b = 5; #5
 int c = 0; #8
 int d = 7; #7
 int e = 0; #555
+
+int add_w = 0; #0
 
 a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
 
@@ -31,4 +35,11 @@ if ( e <= 11 ) then {
 }
 else{
     e = 555;
+}
+
+# PROBLEM: ComparisonNode is not defined as OperationNode: 554+1 ... if (e == 554+1) then {}
+if (e == 555) then {
+    c2.addWheel();
+    c2.addWheel();
+    c2.addWheel();
 }

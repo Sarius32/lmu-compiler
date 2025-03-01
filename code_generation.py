@@ -70,7 +70,8 @@ class CodeGenerator:
 
         self._syntax_tree = syntax_tree
         self._global_var_dict = dict[str, VariableStore]()
-        self._context_var_dict = dict[str, VariableStore]()
+        self._context_var_dict = dict[str, VariableStore]() #TO DO: solve context attributes, variables ... verschachtelung!!
+        self._context_class = str()
         self._type_dict = dict[str, TypeStore]()
 
         self._return_adress = 0
@@ -129,9 +130,9 @@ class CodeGenerator:
 
         #Parameters have to be on stack B -1
         methods_dict = dict[str, MethodStore]()
-        self._current_base += 1
-        if(self._current_base != 1):
-            raise ValueError(f"Unexpected value: {self._current_base} of Base in Class definition")
+        #self._current_base += 1
+        #if(self._current_base != 1):
+        #    raise ValueError(f"Unexpected value: {self._current_base} of Base in Class definition")
 
 
         #Constructor: AttributeDefNode can consist of Operations
@@ -154,6 +155,10 @@ class CodeGenerator:
             self._add_line("STO", [0, -size , f"# ATTRIBUTE: {attribute.name}"]) #base should be 0 = current_base - 1
         self._add_line("RET", [])
         
+        self._context_class = class_node.name #TO DO: make clear what variables and attributes can be accesed from current location!!!
+
+        type_class = TypeStore(class_node.name, size, attributes, methods_dict)
+        self._type_dict[type_class.name] = type_class
 
         for method in class_node.methods:
             line = self._get_line_number()
@@ -181,9 +186,7 @@ class CodeGenerator:
             for statement in method.stmts:
                 self._handle_statement(statement)
 
-        self._current_base -= 1
-        type_class = TypeStore(class_node.name, size, attributes, methods_dict)
-        self._type_dict[type_class.name] = type_class
+        #self._current_base -= 1
 
 
     def _declare_variables(self, var_list: list[VariableDefNode], store_var: dict[str, VariableStore]):
@@ -233,18 +236,7 @@ class CodeGenerator:
             case _:
                 raise TypeError(f"Unexpected type: {type(value)} for value of assignment")
 
-
-        match var:
-            case VarUseNode():
-                self._store_var(var)
-            # case ArgUseNode():
-            #     self._store_var(var)
-            # case AttrUseNode():
-            #     self._store_var(var)
-            case InstAttrUseNode():
-                self._store_inst_attribute(var)
-            case _:
-                raise TypeError(f"Unexpected type: {type(var)} for variable in assignment")
+        self._handle_use_node_store(var)
             
     def _store_inst_attribute(self, inst_attribute: InstAttrUseNode):
         ### EINFÜGEN und in externe Methode auslagern
@@ -278,6 +270,38 @@ class CodeGenerator:
         base = self._current_base - variable.base
         self._add_line("LOD", [base, address])
 
+            
+    def _load_attribute(self, attribute: AttrUseNode):
+        ### EINFÜGEN und in externe Methode auslagern
+        # if variable.name in self._context_var_dict:
+        #     var = self._context_var_dict[variable.name]
+        # else:
+        #     var = self._global_var_dict[variable.name]
+
+        
+        type_store = self._type_dict[self._context_class]
+        (offset, type_) = type_store.instance_vars[attribute.name]
+
+        address = -offset-1
+        base = 0 #In current Method
+        self._add_line("LOD", [base, address])
+
+            
+    def _store_attribute(self, attribute: AttrUseNode):
+        ### EINFÜGEN und in externe Methode auslagern
+        # if variable.name in self._context_var_dict:
+        #     var = self._context_var_dict[variable.name]
+        # else:
+        #     var = self._global_var_dict[variable.name]
+
+        
+        type_store = self._type_dict[self._context_class]
+        (offset, type_) = type_store.instance_vars[attribute.name]
+
+        address = -offset-1
+        base = 0 #In current Method
+        self._add_line("STO", [base, address])
+
     def _handle_statement(self, statement: Statement):
         match statement:
             case AssignmentNode():
@@ -290,13 +314,62 @@ class CodeGenerator:
             #     statement
             case ReturnNode():
                 self._handle_expression(statement.expr)
-                self._add_line("STO", [self._current_base, self._return_adress])
+                self._add_line("STO", [0, self._return_adress]) #Return current base!
                 self._add_line("RET", [])
 
-            #case _ if is_callNode(statement):
-            #    statement
+            case CallNode():
+                self._handle_call_node(statement)
             case _:
                 raise TypeError(f"Unexpected type: {type(statement)} for a statment")
+            
+    def _handle_call_node(self, call_node: CallNode):
+        match call_node:
+            case InstMethodCallNode():
+                self._inst_method_call(call_node)
+            # case MethodCallNode():
+            #     call_node
+            # case FuncCallNode():
+            #     call_node
+            case _:
+                raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")
+    def _inst_method_call(self, call_node : InstMethodCallNode):
+        #1. Add return_value storage
+        self._add_line("LIT", [0])
+
+        #2. Push Parameters on stack, reversed
+        arg_count = 0
+        for param in call_node.args[::-1]:
+            arg_count += 1
+            self._handle_expression(param)
+        
+        #3. Push Objec on stack
+        var_store = self._global_var_dict[call_node.class_name]
+        type_store = self._type_dict[var_store.type_]
+
+        base_adress = var_store.address
+        type_size = type_store.size
+        for i in range(type_size): #Can use inst_var dictionary to be type sensitive vor attributes!!!
+            self._add_line("LOD", [0, base_adress+type_size-1-i]) #base should b 0
+
+        #4. Call Method
+        method = type_store.methods[call_node.name]
+        self._add_line("CAL", [0, method.adress]) 
+
+        #5. CleanUp after Return
+        #5.1 object back
+        for i in range(type_size):
+            self._add_line("STO", [0, base_adress+i]) #base should b 0
+
+        # for (offset, type_) in type_store.instance_vars:
+        #     self._add_line("STO", [0, base_adress+offset]) #base should b 0
+            
+        #5.2 delete Arg copies
+        self._add_line("INC", [-arg_count]) #base should b 0
+
+        ####Handle Return!!!
+        self._add_line("WRI", [])
+
+            
 
     def _handle_if_else(self, if_else_node: IfThenElseNode):
         #1. Evaluate condition
@@ -344,20 +417,34 @@ class CodeGenerator:
                 self._handle_comparison_node(node_lr.condition)
                 self._add_line("OPR", ["!"])
             case UseNode():
-                self._handle_use_node(node_lr)
+                self._handle_use_node_load(node_lr)
             case _:
                 raise TypeError(f"Unexpected type: {type(node_lr)} in Comparison PART")
     
-    def _handle_use_node(self, use_node: UseNode):
+    def _handle_use_node_load(self, use_node: UseNode):
         match use_node:
             case VarUseNode():
                 self._load_var(use_node)
             # case ArgUseNode():
             #     use_node
-            # case AttrUseNode():
-            #     use_node
+            case AttrUseNode():
+                self._load_attribute(use_node)
             case InstAttrUseNode():
                 self._load_inst_attribute(use_node)
+            case _:
+                raise TypeError(f"Unexpected type: {type(use_node)} in Handle use node")
+
+
+    def _handle_use_node_store(self, use_node: UseNode):
+        match use_node:
+            case VarUseNode():
+                self._store_var(use_node)
+            # case ArgUseNode():
+            #     use_node
+            case AttrUseNode():
+                self._store_attribute(use_node)
+            case InstAttrUseNode():
+                self._store_inst_attribute(use_node)
             case _:
                 raise TypeError(f"Unexpected type: {type(use_node)} in Handle use node")
 
@@ -373,14 +460,8 @@ class CodeGenerator:
                 self._add_line("LIT", [expression])
             case OperationNode():
                 self._handle_operation(expression)
-            case VarUseNode():
-                self._load_var(expression)
-            # case ArgUseNode(): TO DO
-            #     None
-            #case AttrUseNode():
-            #    self._load_var(expression.name)
-            case InstAttrUseNode():
-                self._load_inst_attribute(expression)
+            case UseNode():
+                self._handle_use_node_load(expression)
             case _:
                 raise TypeError(f"Unexpected type: {type(expression)} in Expression")
 

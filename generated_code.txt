@@ -1,5 +1,5 @@
 RST 
-JMP 17 # MAIN 
+JMP 23 # MAIN 
 INC 0 # CONSTRUCTOR (remove line later!!) 
 LIT 11 
 STO 0 -1 # ATTRIBUTE: wheels 
@@ -9,14 +9,20 @@ RET
 INC 0 # METHOD:  addWheel 
 INC 1 
 LIT 0 
-STO 1 3 # VAR: int 0_w 
+STO 0 3 # VAR: int 0_w 
 LOD 0 3 
 LIT 1 
 OPR + 
-STO 1 -3 
+STO 0 3 
+LOD 0 -1 
+LOD 0 3 
+OPR + 
+STO 0 -1 
+LOD 0 3 
+STO 0 -3 
 RET 
 INC 0 # MAIN: (delete later) 
-INC 9 
+INC 10 
 INC 2 
 CAL 0 2 
 STO 0 3 # VAR: Car 0_c1 
@@ -35,6 +41,8 @@ LIT 7
 STO 0 10 # VAR: int 0_d 
 LIT 0 
 STO 0 11 # VAR: int 0_e 
+LIT 0 
+STO 0 12 # VAR: int 0_add_w 
 LIT 2 
 LIT 3 
 OPR * 
@@ -65,17 +73,50 @@ LOD 0 11
 LIT 11 
 OPR > 
 OPR ! 
-JOF 73 
+JOF 81 
 LOD 0 11 
 LIT 6 
 OPR + 
 STO 0 11 
-JMP 75 
+JMP 83 
 LIT 555 
 STO 0 11 
+LOD 0 11 
+LIT 555 
+OPR = 
+JOF 112 
+LIT 0 
+LOD 0 6 
+LOD 0 5 
+CAL 0 8 
+STO 0 5 
+STO 0 6 
+INC 0 
+WRI 
+LIT 0 
+LOD 0 6 
+LOD 0 5 
+CAL 0 8 
+STO 0 5 
+STO 0 6 
+INC 0 
+WRI 
+LIT 0 
+LOD 0 6 
+LOD 0 5 
+CAL 0 8 
+STO 0 5 
+STO 0 6 
+INC 0 
+WRI 
+JMP 112 
 LOD 0 3 
 WRI 
+LOD 0 4 
+WRI 
 LOD 0 5 
+WRI 
+LOD 0 6 
 WRI 
 LOD 0 7 
 WRI 
@@ -86,5 +127,7 @@ WRI
 LOD 0 10 
 WRI 
 LOD 0 11 
+WRI 
+LOD 0 12 
 WRI 
 HLT 
