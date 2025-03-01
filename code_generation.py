@@ -328,8 +328,8 @@ class CodeGenerator:
                 self._handle_write(statement)
             case IfThenElseNode():
                 self._handle_if_else(statement)
-            # case WhileNode():
-            #     statement
+            case WhileNode():
+                self._handle_while(statement)
             case ReturnNode():
                 self._handle_expression(statement.expr)
                 self._add_line("STO", [0, self._return_adress]) #Return current base!
@@ -352,7 +352,7 @@ class CodeGenerator:
                 raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")
     def _inst_method_call(self, call_node : InstMethodCallNode):
         #1. Add return_value storage
-        self._add_line("LIT", [0])
+        self._add_line("INC", [1]) #change for bigger types
 
         #2. Push Parameters on stack, reversed
         arg_count = 0
@@ -410,6 +410,28 @@ class CodeGenerator:
         else_adress.append(self._get_line_number())
         for statement in if_else_node.alternative:
             self._handle_statement(statement)
+        
+        ###
+        end_adress.append(self._get_line_number())
+            
+
+    def _handle_while(self, while_node: WhileNode):
+        condition_line = self._get_line_number()
+        #1. Evaluate condition
+        jump_on = self._handle_comparison_node(while_node.condition)
+        
+        #2. Jump to to end/after if condition is false
+        # if jump_on:
+        #     else_adress = self._add_line("JOF", []) #Jump on opposite to else
+        # else:
+        end_adress = self._add_line("JOF", [])
+
+        #3. While-statments
+        for statement in while_node.do:
+            self._handle_statement(statement)
+
+        #4. Jump to condition
+        self._add_line("JMP", [condition_line])
         
         ###
         end_adress.append(self._get_line_number())

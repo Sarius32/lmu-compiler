@@ -19,14 +19,14 @@ int c = 0; #8
 int d = 7; #7
 int e = 0; #555
 
-int add_w = 0; #0
+int add_w = 13; #13
 
 a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
 
 c = a + b;
 
 
-c1.wheels = 10;
+c1.wheels = 30;
 c2.color = 42;
 e = c2.wheels + 1;
 
@@ -39,9 +39,18 @@ else{
 
 # PROBLEM: ComparisonNode is not defined as OperationNode: 554+1 ... if (e == 554+1) then {}
 if (e == 555) then {
-    c2.addWheel( 13 );
+    c2.addWheel( add_w );
     #PROBLEM: add_w = c2.addWheel( 13 ); not possible, because Assignment can not be a Call
 }
 
 print( c2.color ); #42
 print( c2.wheels ); #24
+
+
+
+print(c1.wheels); #30
+while ( add_w < c1.wheels ) do {
+    c1.wheels = c1.wheels - 5;
+    print(c1.wheels); #last should be 10
+    #return;
+}

@@ -41,7 +41,7 @@ LIT 7
 STO 0 10 # VAR: int 0_d 
 LIT 0 
 STO 0 11 # VAR: int 0_e 
-LIT 0 
+LIT 13 
 STO 0 12 # VAR: int 0_add_w 
 LIT 2 
 LIT 3 
@@ -61,7 +61,7 @@ LOD 0 7
 LOD 0 8 
 OPR + 
 STO 0 9 
-LIT 10 
+LIT 30 
 STO 0 3 
 LIT 42 
 STO 0 6 
@@ -85,18 +85,31 @@ LOD 0 11
 LIT 555 
 OPR = 
 JOF 97 
-LIT 0 
-LIT 13 
+INC 1 
+LOD 0 12 
 LOD 0 6 
 LOD 0 5 
 CAL 0 8 
 STO 0 5 
 STO 0 6 
 INC -1 
-WRI 
+INC -1 
 JMP 97 
 LOD 0 6 
 WRI 
 LOD 0 5 
 WRI 
+LOD 0 3 
+WRI 
+LOD 0 12 
+LOD 0 3 
+OPR < 
+JOF 114 
+LOD 0 3 
+LIT 5 
+OPR - 
+STO 0 3 
+LOD 0 3 
+WRI 
+JMP 103 
 HLT 
