@@ -28,15 +28,18 @@ class Car {
 
 function exit(n) {
     print(n);
+    return; #is necesarry or generate auomatically at last line!!
 }
 
 function count( n ) {
     int i = 1;
 
-    i = n;
-    return;
+    while ( i <= n) do {
+        exit(i);
+        i = i + 1;
+    }
 
-    exit(0);
+    return;
 }
 
 int wheels = 0;
@@ -44,10 +47,12 @@ inst Car car;
 
 wheels = input();
 
-car.wheels = wheels;
+car.wheels = 12;
 
 while ( wheels < car.wheels ) do {
-    wheels = 0;
+    car.wheels = car.wheels - 1;
     print(car.wheels);
-    return;
+    # return; warum hier ein return? Dann müsste die while schleife als call implementiert werden ... anderes keyword break wäre besser
 }
+
+count(5);

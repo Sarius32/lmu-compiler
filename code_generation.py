@@ -74,6 +74,7 @@ class CodeGenerator:
         self._context_class = str()
         self._context_method = str()
         self._type_dict = dict[str, TypeStore]()
+        #self._function_dict = dict[str, MethodStore]() in type_dict TYPE: FUNCTIONS
 
         self._return_adress = 0
         
@@ -96,12 +97,15 @@ class CodeGenerator:
 
         self._define_classes(self._syntax_tree.classes)
 
+        self._define_functions(self._syntax_tree.funcs)
+
         ###Main starts
         self.t = 2
 
         main_prog_adress.append(self._get_line_number())
         main_prog_adress.append("# MAIN")
         main_prog_adress = self._add_line("INC", [0, "# MAIN: (delete later)"])
+
 
         self._declare_variables(self._syntax_tree.vars_, self._global_var_dict)
         
@@ -116,6 +120,47 @@ class CodeGenerator:
         # ###
 
         self._add_line("HLT", [])
+
+    def _define_functions(self, function_list: list[FunctionDefNode]):
+        type_class = TypeStore("FUNCTIONS", 0, {}, dict[str, MethodStore]())
+        self._type_dict[type_class.name] = type_class
+
+        for _, function in enumerate(function_list):
+            self._handle_function_def(function)
+
+    def _handle_function_def(self, func_node: FunctionDefNode):
+        self._context_class = "FUNCTIONS"
+        methods = self._type_dict[self._context_class].methods
+
+        line = self._get_line_number()
+        f_name = func_node.name
+        self._add_line("INC", [0 ,"# FUNCTION: ", f_name])
+
+        f_args = dict[str, tuple[int, str]]() #offset, type
+        var_store = dict[str, VariableStore]() #Variables of Function
+        methods[f_name] = MethodStore(f_name, line, f_args, var_store)
+
+        self._context_method = f_name
+
+        #Args are only ints!! ArgDefNodes are untyped
+        #First arg is last on stack:  Bsp. Stack... MAIN... parameter3, parameter2, parameter1, Dynamic,RET,B, ...Method...
+        arg_offs = 0
+
+        #Parameter
+        for _, arg in enumerate(func_node.args):
+            arg_offs -= 1 #-1 for int
+            f_args[arg.name] = (arg_offs, "int")
+
+        #Return Value (only int)
+        self._return_adress = arg_offs - 1
+
+        self.t = 2 #Inside a new function
+        self._declare_variables(func_node.vars_, var_store)
+
+        self._context_var_dict = var_store
+        for statement in func_node.stmts:
+            self._handle_statement(statement)
+
 
     def _define_classes(self, classes_list: list[ClassNode]):
         for _, class_ in enumerate(classes_list):
@@ -356,10 +401,34 @@ class CodeGenerator:
                 self._inst_method_call(call_node)
             case MethodCallNode():
                 self._method_call(call_node)
-            # case FuncCallNode():
-            #     call_node
+            case FuncCallNode():
+                self._function_call(call_node)
             case _:
                 raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")
+    
+    def _function_call(self, call_node : FuncCallNode):
+        #1. Add return_value storage
+        self._add_line("INC", [1]) #change for bigger types
+
+        #2. Push Parameters on stack, reversed
+        arg_count = 0
+        for param in call_node.args[::-1]:
+            arg_count += 1
+            self._handle_expression(param)
+        
+
+        #3. Call Function
+        type_store = self._type_dict["FUNCTIONS"]
+        func = type_store.methods[call_node.name]
+        self._add_line("CAL", [0, func.adress]) 
+
+        #4. CleanUp after Return delete Arg copies
+        self._add_line("INC", [-arg_count]) #base should b 0
+
+        ####TO DO: Handle Return!!!
+        self._add_line("INC", [-1])
+
+
     
     def _method_call(self, call_node : MethodCallNode):
         #1. Add return_value storage
@@ -371,9 +440,6 @@ class CodeGenerator:
             arg_count += 1
             self._handle_expression(param)
         
-        call_node
-        
-        self._context_method
         #3. Push Objec on stack
         type_store = self._type_dict[self._context_class]
 
