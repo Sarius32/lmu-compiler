@@ -1,3 +1,15 @@
+class Car {
+    int wheels = 2;
+    int color = 3;
+
+    method addWheel() {
+        int w = 0;
+		return w + 1;
+    }
+}
+
+inst Car c1;
+
 int a = 0;
 int b = 5;
 int c = 0;

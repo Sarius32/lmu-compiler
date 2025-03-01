@@ -1,17 +1,38 @@
 RST 
-INC 4 
+JMP 17 # MAIN 
+INC 0 # CONSTRUCTOR (remove line later!!) 
+LIT 2 
+STO 0 -1 # ATTRIBUTE: wheels 
+LIT 3 
+STO 0 -2 # ATTRIBUTE: color 
+RET 
+INC 0 # METHOD:  addWheel 
+INC 1 
 LIT 0 
-STO 0 3 
+STO 1 3 # VAR: int 0_w 
+LOD 0 3 
+LIT 1 
+OPR + 
+STO 1 -3 
+RET 
+INC 0 # MAIN: (delete later) 
+INC 6 
+INC 2 
+CAL 0 2 
+STO 0 3 # VAR: Car 0_c1 
+STO 0 4 # VAR: Car 1_c1 
+LIT 0 
+STO 0 5 # VAR: int 0_a 
 LIT 5 
-STO 0 4 
+STO 0 6 # VAR: int 0_b 
 LIT 0 
-STO 0 5 
+STO 0 7 # VAR: int 0_c 
 LIT 7 
-STO 0 6 
+STO 0 8 # VAR: int 0_d 
 LIT 2 
 LIT 3 
 OPR * 
-LOD 0 6 
+LOD 0 8 
 LIT 13 
 OPR - 
 LIT 3 
@@ -21,17 +42,19 @@ LIT 10
 OPR - 
 OPR / 
 OPR + 
-STO 0 3 
-LOD 0 3 
-LOD 0 4 
-OPR + 
 STO 0 5 
+LOD 0 5 
+LOD 0 6 
+OPR + 
+STO 0 7 
 LOD 0 3 
-WRI 
-LOD 0 4 
 WRI 
 LOD 0 5 
 WRI 
 LOD 0 6 
+WRI 
+LOD 0 7 
+WRI 
+LOD 0 8 
 WRI 
 HLT 

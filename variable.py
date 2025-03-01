@@ -10,7 +10,16 @@ class VariableStore:
 
 
 @dataclass
+class MethodStore:
+    name: str
+    adress: int
+    parameter: dict[str, tuple[int, str]] #name: (offset, type)
+    variables: dict[str, VariableStore]
+
+
+@dataclass
 class TypeStore:
     name: str
     size: int
-    #components? variables?
+    instance_vars: dict[str, tuple[int, str]] #name: (offset, type)
+    methods: dict[str, MethodStore] #name adresse
