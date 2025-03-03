@@ -1,6 +1,6 @@
 RST 
-JMP 32 # JUMP to MAIN 
-INC 0 #  Faculty  : CONSTRUCTOR [instruction can be deleted] 
+JMP 56 # JUMP to MAIN 
+INC 0 #  Faculty_Rec  : CONSTRUCTOR [instruction can be deleted] 
 LIT 1 
 STO 0 -1 # ATTRIBUTE: n 
 RET 
@@ -30,13 +30,39 @@ INC -1
 LIT 0 
 STO 0 -3 
 RET 
+INC 0 #  Faculty_It  : CONSTRUCTOR [instruction can be deleted] 
+RET 
+INC 0 # METHOD:  faculty  [instruction can be deleted] 
+INC 2 
+LIT 1 
+STO 0 3 # VAR: int 0_i 
+LIT 1 
+STO 0 4 # VAR: int 0_return_v 
+LOD 0 3 
+LOD 0 -1 
+OPR < 
+JOF 53 
+LOD 0 3 
+LIT 1 
+OPR + 
+STO 0 3 
+LOD 0 4 
+LOD 0 3 
+OPR * 
+STO 0 4 
+JMP 40 
+LOD 0 4 
+STO 0 -2 
+RET 
 INC 0 # MAIN: [instruction can be deleted] 
 INC 2 
 LIT 0 
 STO 0 3 # VAR: int 0_n 
 INC 1 
 CAL 0 2 
-STO 0 4 # VAR: Faculty 0_fac 
+STO 0 4 # VAR: Faculty_Rec 0_fac_r 
+INC 0 
+CAL 0 32 
 REA 
 STO 0 3 
 INC 1 
@@ -47,5 +73,10 @@ STO 0 4
 INC -1 
 INC -1 
 LOD 0 4 
+WRI 
+INC 1 
+LOD 0 3 
+CAL 0 34 
+INC -1 
 WRI 
 HLT 

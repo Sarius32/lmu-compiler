@@ -14,7 +14,7 @@ from variable import MethodStore, ProgramStore, TypeStore, VariableStore
 
         
 def is_expression(value: Expression) -> bool:
-    return isinstance(value, (OperationNode, UseNode, int))
+    return isinstance(value, (OperationNode, UseNode, CallNode, int))
         
 def convert_operator(op: Operator) -> tuple[str, bool]:
     match op:
@@ -330,7 +330,7 @@ class CodeGenerator:
             case FuncCallNode():
                 self._function_call(call_node)
             case _:
-                raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")    
+                raise TypeError(f"Unexpected type: {type(call_node)} for a Call node")
 
 #region FUNCTION handeling
     def _define_functions(self, function_list: list[FunctionDefNode]):
@@ -388,8 +388,6 @@ class CodeGenerator:
         #4. CleanUp after Return delete Arg copies
         self._add_instruction_line(INCREMENT, [-arg_count]) #base should b 0
 
-        ####TO DO: Handle Return!!! """TO DO"""
-        self._add_instruction_line(INCREMENT, [-1])
 #endregion
 
 #region CLASS handeling
@@ -518,10 +516,6 @@ class CodeGenerator:
             
         #5.2 delete Arg copies
         self._add_instruction_line(INCREMENT, [-arg_count]) #base should b 0
-
-        ####TO DO: Handle Return!!!
-        self._add_instruction_line(INCREMENT, [-1])
-
 #endregion
 
     def _handle_multiple_statements(self, statements: list[Statement]):
@@ -542,6 +536,7 @@ class CodeGenerator:
                 self._handle_return(statement)
             case CallNode():
                 self._handle_call_node(statement)
+                self._add_instruction_line(INCREMENT, [-1]) #Delete Return for only calls
             case _:
                 raise TypeError(f"Unexpected type: {type(statement)} for a statment")
             
@@ -558,6 +553,8 @@ class CodeGenerator:
                 self._handle_operation(expression)
             case UseNode():
                 self._handle_use_node_load(expression)
+            case CallNode():
+                self._handle_call_node(expression)
             case _:
                 raise TypeError(f"Unexpected type: {type(expression)} in Expression")
         
@@ -624,18 +621,15 @@ class CodeGenerator:
         return False
 
 
-    def _handle_part_of_comparison(self, node_lr: ComparisonNode | InvertNode | UseNode | int):
+    def _handle_part_of_comparison(self, node_lr: Expression | InvertNode):
         #Handle left or right part of a Comparison
         match node_lr:
-            case int():
-                self._add_instruction_line(LITERAL, [node_lr])
-            case ComparisonNode():
-                self._handle_comparison_node(node_lr)
             case InvertNode():
-                self._handle_comparison_node(node_lr.condition)
-                self._add_instruction_line(OPERATOR, ["!"])
-            case UseNode():
-                self._handle_use_node_load(node_lr)
+                return not self._handle_comparison_node(node_lr.condition)
+            
+            case _ if is_expression(node_lr):
+                self._handle_expression(node_lr)
+
             case _:
                 raise TypeError(f"Unexpected type: {type(node_lr)} in Comparison PART")
     
@@ -678,7 +672,8 @@ class CodeGenerator:
 
 if __name__ == "__main__":
     path =  "./test_programs/"
-    program = "faculty_function.lmu"
+    #program = "faculty_function.lmu"
+    program = "faculty_class.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)

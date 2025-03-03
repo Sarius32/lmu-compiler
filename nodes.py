@@ -61,9 +61,9 @@ class InvertNode(Node):
 
 @dataclass
 class ComparisonNode(Node):
-    left: ComparisonNode | InvertNode | UseNode | int
+    left: Expression | InvertNode
     operation: Operator
-    right: ComparisonNode | InvertNode | UseNode | int
+    right: Expression | InvertNode
 
     def get_identifiers(self):
         ids = set()
@@ -181,8 +181,6 @@ class FunctionDefNode(MethodDefNode):
 ### Function/Method Call Nodes
 
 
-Expression = UseNode | OperationNode | int
-
 
 @dataclass
 class CallNode(Node):
@@ -195,6 +193,7 @@ class CallNode(Node):
             ids.update(arg.get_identifiers() if type(arg) != int else [])
         return ids
 
+Expression = UseNode | OperationNode | int | CallNode
 
 @dataclass
 class FuncCallNode(CallNode):

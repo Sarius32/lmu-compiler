@@ -1,4 +1,4 @@
-class Faculty {
+class Faculty_Rec {
     int n = 1;
 
     method faculty( num ) {
@@ -13,10 +13,28 @@ class Faculty {
     }
 }
 
+class Faculty_It {
+
+    method faculty( n ) {
+        int i = 1;
+        int return_v = 1;
+
+        while ( i < n) do {
+            i = i + 1;
+            return_v = return_v * i;
+        }
+
+        return return_v;
+    }
+}
+
 int n = 0;
-inst Faculty fac;
+inst Faculty_Rec fac_r;
+inst Faculty_It fac_i;
 
 n = input();
-fac.faculty(n);
 
-print(fac.n);
+fac_r.faculty(n);
+print(fac_r.n);
+
+print(fac_i.faculty(n));
