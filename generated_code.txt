@@ -1,109 +1,166 @@
 RST 
-JMP 81 # MAIN 
-INC 0 # CONSTRUCTOR (remove line later!!) 
-LIT 0 
+JMP 59 # JUMP to MAIN 
+INC 0 #  Car  : CONSTRUCTOR [instruction can be deleted] 
+LIT 11 
 STO 0 -1 # ATTRIBUTE: wheels 
+LIT 63 
+STO 0 -2 # ATTRIBUTE: color 
 RET 
-INC 0 # METHOD:  addWheel 
-INC 0 
+INC 0 # METHOD:  addWheel  [instruction can be deleted] 
+INC 1 
+LIT 0 
+STO 0 3 # VAR: int 0_w 
+LOD 0 -3 
+WRI 
+LOD 0 3 
+LOD 0 -3 
+OPR + 
+STO 0 3 
 LOD 0 -1 
-LIT 1 
+LOD 0 3 
 OPR + 
 STO 0 -1 
 LOD 0 -1 
-STO 0 -2 
-RET 
-INC 0 # METHOD:  removeWheel 
-INC 0 
-LOD 0 -1 
-LIT 0 
-OPR > 
-JOF 26 
-LOD 0 -1 
-LIT 1 
-OPR - 
-STO 0 -1 
-JMP 26 
-LOD 0 -1 
-STO 0 -2 
-RET 
-INC 0 # METHOD:  printWheels 
-INC 0 
-LOD 0 -1 
 WRI 
-INC 0 # METHOD:  printWheelsRep 
-INC 1 
-LIT 0 
-STO 0 3 # VAR: int 0_i 
 LOD 0 3 
+WRI 
+LOD 0 3 
+STO 0 -4 
+RET 
+INC 0 #  Faculty  : CONSTRUCTOR [instruction can be deleted] 
+LIT 1 
+STO 0 -1 # ATTRIBUTE: n 
+RET 
+INC 0 # METHOD:  faculty  [instruction can be deleted] 
+INC 0 
+LOD 0 -1 
 LOD 0 -2 
-OPR < 
-JOF 52 
-INC 1 
-LOD 0 -1 
-CAL 0 29 
+OPR * 
 STO 0 -1 
-INC 0 
-INC -1 
-LOD 0 3 
+LOD 0 -2 
 LIT 1 
-OPR + 
-STO 0 3 
-JMP 37 
-INC 0 # FUNCTION:  exit 
-INC 0 
-LOD 0 -1 
-WRI 
+OPR = 
+JOF 47 
 LIT 0 
-STO 0 -2 
+STO 0 -3 
 RET 
-INC 0 # FUNCTION:  count 
+JMP 59 
 INC 1 
-LIT 1 
-STO 0 3 # VAR: int 0_i 
-LOD 0 3 
-LOD 0 -1 
-OPR > 
-OPR ! 
-JOF 78 
-INC 1 
-LOD 0 3 
-CAL 0 52 
-INC -1 
-INC -1 
-LOD 0 3 
-LIT 1 
-OPR + 
-STO 0 3 
-JMP 63 
-LIT 0 
-STO 0 -2 
-RET 
-INC 0 # MAIN: (delete later) 
-INC 2 
-LIT 0 
-STO 0 3 # VAR: int 0_wheels 
-INC 1 
-CAL 0 2 
-STO 0 4 # VAR: Car 0_car 
-REA 
-STO 0 3 
-LIT 12 
-STO 0 4 
-LOD 0 3 
-LOD 0 4 
-OPR < 
-JOF 103 
-LOD 0 4 
+LOD 0 -2 
 LIT 1 
 OPR - 
-STO 0 4 
-LOD 0 4 
-WRI 
-JMP 92 
+LOD 0 -1 
+CAL 0 33 
+STO 0 -1 
+INC -1 
+INC -1 
+LIT 0 
+STO 0 -3 
+RET 
+INC 0 # MAIN: [instruction can be deleted] 
+INC 11 
+INC 2 
+CAL 0 2 
+STO 0 3 # VAR: Car 0_c1 
+STO 0 4 # VAR: Car 1_c1 
+INC 2 
+CAL 0 2 
+STO 0 5 # VAR: Car 0_c2 
+STO 0 6 # VAR: Car 1_c2 
 INC 1 
+CAL 0 29 
+STO 0 7 # VAR: Faculty 0_fac 
+LIT 0 
+STO 0 8 # VAR: int 0_a 
 LIT 5 
-CAL 0 59 
+STO 0 9 # VAR: int 0_b 
+LIT 0 
+STO 0 10 # VAR: int 0_c 
+LIT 7 
+STO 0 11 # VAR: int 0_d 
+LIT 0 
+STO 0 12 # VAR: int 0_e 
+LIT 13 
+STO 0 13 # VAR: int 0_add_w 
+LIT 2 
+LIT 3 
+OPR * 
+LOD 0 11 
+LIT 13 
+OPR - 
+LIT 3 
+LIT 4 
+OPR * 
+LIT 10 
+OPR - 
+OPR / 
+OPR + 
+STO 0 8 
+LOD 0 8 
+LOD 0 9 
+OPR + 
+STO 0 10 
+LIT 30 
+STO 0 3 
+LIT 42 
+STO 0 6 
+LOD 0 5 
+LIT 1 
+OPR + 
+STO 0 12 
+LOD 0 12 
+LIT 11 
+OPR > 
+JOT 119 
+LOD 0 12 
+LIT 6 
+OPR + 
+STO 0 12 
+JMP 121 
+LIT 555 
+STO 0 12 
+LOD 0 12 
+WRI 
+LOD 0 12 
+LIT 555 
+OPR = 
+JOF 139 
+INC 1 
+LOD 0 13 
+LOD 0 6 
+LOD 0 5 
+CAL 0 8 
+STO 0 5 
+STO 0 6 
 INC -1 
 INC -1 
+LIT 3333333332 
+WRI 
+JMP 139 
+LOD 0 6 
+WRI 
+LOD 0 5 
+WRI 
+LOD 0 3 
+WRI 
+LOD 0 13 
+LOD 0 3 
+OPR < 
+JOF 156 
+LOD 0 3 
+LIT 5 
+OPR - 
+STO 0 3 
+LOD 0 3 
+WRI 
+JMP 145 
+INC 1 
+LIT 6 
+LOD 0 7 
+CAL 0 33 
+STO 0 7 
+INC -1 
+INC -1 
+LOD 0 7 
+WRI 
 HLT 

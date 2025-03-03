@@ -4,14 +4,35 @@ class Car {
 
     method addWheel( num ) {
         int w = 0;
+        print(num);
         w = w + num;
         this.wheels = this.wheels + w;
+        print(this.wheels);
+        print(w);
 		return w;
     }
 }
 
+class Faculty {
+    int n = 1;
+
+    method faculty( num ) {
+        this.n = this.n * num;
+        if( num == 1 ) then{
+            return;
+        }
+        else{
+            this.faculty( num - 1 );
+            return;
+        }
+    }
+}
+
+
 inst Car c1; #10, 63
 inst Car c2; #24, 42
+
+inst Faculty fac;
 
 int a = 0; #3
 int b = 5; #5
@@ -36,10 +57,12 @@ if ( e <= 11 ) then {
 else{
     e = 555;
 }
+print( e );
 
 # PROBLEM: ComparisonNode is not defined as OperationNode: 554+1 ... if (e == 554+1) then {}
 if (e == 555) then {
     c2.addWheel( add_w );
+    print( 3333333332 );
     #PROBLEM: add_w = c2.addWheel( 13 ); not possible, because Assignment can not be a Call
 }
 
@@ -54,3 +77,6 @@ while ( add_w < c1.wheels ) do {
     print(c1.wheels); #last should be 10
     #return;
 }
+
+fac.faculty(6);
+print(fac.n);
