@@ -1,0 +1,22 @@
+class Faculty {
+    int n = 1;
+
+    method faculty( num ) {
+        this.n = this.n * num;
+        if( num == 1 ) then{
+            return;
+        }
+        else{
+            this.faculty( num - 1 );
+            return;
+        }
+    }
+}
+
+int n = 0;
+inst Faculty fac;
+
+n = input();
+fac.faculty(n);
+
+print(fac.n);

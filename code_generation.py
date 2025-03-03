@@ -90,7 +90,7 @@ class CodeGenerator:
         ### Main Program starts ###
         main_prog_adress.append(self._get_line_number())
         main_prog_adress.append("# JUMP to MAIN")
-        self._add_instruction_line("INC", [0, "# MAIN: [instruction can be deleted]"])
+        self._add_instruction_line(INCREMENT, [0, "# MAIN: [instruction can be deleted]"])
 
         #declare variables of Main program
         self._declare_variables(self._syntax_tree.vars_, self._program_tables.variables)
@@ -350,6 +350,7 @@ class CodeGenerator:
         var_store = dict[str, VariableStore]() #Variables of Function
         functions[f_name] = MethodStore(f_name, line, f_args, var_store)
 
+        self._context_type = "FUNC" #Handle functions not classes
         self._context_method_func = f_name
 
         #Args are only ints! ArgDefNodes are untyped
@@ -366,6 +367,7 @@ class CodeGenerator:
 
         self._declare_variables(func_node.vars_, var_store)
 
+        self._context_var_dict = var_store
         self._handle_multiple_statements(func_node.stmts)
 
 
@@ -675,8 +677,9 @@ class CodeGenerator:
 
 
 if __name__ == "__main__":
-    lexer = Lexer("program.txt")
-    #lexer = Lexer("token_test.lmu")
+    path =  "./test_programs/"
+    program = "faculty_function.lmu"
+    lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)
     abstract_syntax_tree = parser.get_program_ast()

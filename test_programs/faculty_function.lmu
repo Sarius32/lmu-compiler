@@ -1,0 +1,30 @@
+function faculty_it( n ) {
+    int i = 1;
+    int return_v = 1;
+
+    while ( i <= n) do {
+        i = i + 1;
+        return_v = return_v * i;
+    }
+
+    return return_v;
+}
+
+#function faculty_rec( n ) {
+#    if( n == 1 ) then{
+#        return n;
+#    }
+#
+#    return n * fac_rec(n - 1)
+#}
+
+int n = 0;
+int erg = 0;
+
+n = input();
+
+erg = faculty_it(n);
+print(erg);
+
+#erg = faculty_rec(n);
+#print(erg);
