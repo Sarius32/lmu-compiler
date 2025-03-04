@@ -466,6 +466,8 @@ class CodeGenerator:
         for statement in method.stmts:
             self._handle_statement(statement)
 
+        self._add_instruction_line(RETURN, []) #Default return at method end
+
 
     def _instanciate(self, instance_node: InstanceNode):
         type_store = self._program_tables.types[instance_node.type_]
@@ -676,6 +678,7 @@ if __name__ == "__main__":
     path =  "./test_programs/"
     #program = "faculty_function.lmu"
     program = "faculty_class.lmu"
+    program = "car.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)

@@ -1,82 +1,135 @@
 RST 
-JMP 56 # JUMP to MAIN 
-INC 0 #  Faculty_Rec  : CONSTRUCTOR [instruction can be deleted] 
-LIT 1 
-STO 0 -1 # ATTRIBUTE: n 
+JMP 61 # JUMP to MAIN 
+INC 0 #  Car  : CONSTRUCTOR [instruction can be deleted] 
+LIT 0 
+STO 0 -1 # ATTRIBUTE: color 
+LIT 0 
+STO 0 -2 # ATTRIBUTE: model 
+LIT 0 
+STO 0 -3 # ATTRIBUTE: size 
+LIT 0 
+STO 0 -4 # ATTRIBUTE: location 
 RET 
-INC 0 # METHOD:  faculty  [instruction can be deleted] 
+INC 0 # METHOD:  getSize  [instruction can be deleted] 
 INC 0 
-LOD 0 -1 
-LOD 0 -2 
-OPR * 
-STO 0 -1 
-LOD 0 -2 
-LIT 1 
-OPR = 
-JOF 20 
-LIT 0 
-STO 0 -3 
+LOD 0 -3 
+STO 0 -5 
 RET 
-JMP 32 
+RET 
+INC 0 # METHOD:  changeColor  [instruction can be deleted] 
+INC 0 
+LOD 0 -5 
+STO 0 -1 
+RET 
+INC 0 # METHOD:  drive  [instruction can be deleted] 
 INC 1 
-LOD 0 -2 
-LIT 1 
-OPR - 
-LOD 0 -1 
-CAL 0 6 
-STO 0 -1 
-INC -1 
-INC -1 
 LIT 0 
-STO 0 -3 
-RET 
-INC 0 #  Faculty_It  : CONSTRUCTOR [instruction can be deleted] 
-RET 
-INC 0 # METHOD:  faculty  [instruction can be deleted] 
-INC 2 
-LIT 1 
-STO 0 3 # VAR: int 0_i 
-LIT 1 
-STO 0 4 # VAR: int 0_return_v 
-LOD 0 3 
-LOD 0 -1 
+STO 0 3 # VAR: int 0_dist_left 
+LOD 0 -4 
+LOD 0 -5 
 OPR < 
-JOF 53 
-LOD 0 3 
-LIT 1 
+JOF 51 
+LOD 0 -4 
+LOD 0 -6 
 OPR + 
+STO 0 -4 
+LOD 0 -4 
+WRI 
+LOD 0 -5 
+LOD 0 -4 
+OPR - 
 STO 0 3 
-LOD 0 4 
 LOD 0 3 
-OPR * 
-STO 0 4 
-JMP 40 
-LOD 0 4 
-STO 0 -2 
+LIT 12 
+OPR > 
+JOT 50 
+LIT 1111 
+WRI 
+LOD 0 3 
+WRI 
+JMP 50 
+JMP 27 
+LOD 0 -5 
+LOD 0 -4 
+OPR - 
+LIT 0 
+OPR = 
+JOT 60 
+LIT 55555 
+WRI 
+JMP 60 
 RET 
 INC 0 # MAIN: [instruction can be deleted] 
-INC 2 
-LIT 0 
-STO 0 3 # VAR: int 0_n 
-INC 1 
+INC 4 
+INC 4 
 CAL 0 2 
-STO 0 4 # VAR: Faculty_Rec 0_fac_r 
-INC 0 
-CAL 0 32 
-REA 
+STO 0 3 # VAR: Car 0_car1 
+STO 0 4 # VAR: Car 1_car1 
+STO 0 5 # VAR: Car 2_car1 
+STO 0 6 # VAR: Car 3_car1 
+LIT 5 
 STO 0 3 
-INC 1 
-LOD 0 3 
-LOD 0 4 
-CAL 0 6 
+LIT 33 
 STO 0 4 
-INC -1 
-INC -1 
-LOD 0 4 
+LIT 2 
+STO 0 5 
+LOD 0 3 
 WRI 
 INC 1 
+LIT 393 
+LOD 0 6 
+LOD 0 5 
+LOD 0 4 
 LOD 0 3 
-CAL 0 34 
+CAL 0 18 
+STO 0 3 
+STO 0 4 
+STO 0 5 
+STO 0 6 
 INC -1 
+INC -1 
+LOD 0 3 
 WRI 
+INC 1 
+LOD 0 6 
+LOD 0 5 
+LOD 0 4 
+LOD 0 3 
+CAL 0 12 
+STO 0 3 
+STO 0 4 
+STO 0 5 
+STO 0 6 
+INC 0 
+WRI 
+INC 1 
+LIT 4 
+LIT 30 
+LOD 0 6 
+LOD 0 5 
+LOD 0 4 
+LOD 0 3 
+CAL 0 23 
+STO 0 3 
+STO 0 4 
+STO 0 5 
+STO 0 6 
+INC -2 
+INC -1 
+LIT 0 
+STO 0 6 
+INC 1 
+LIT 5 
+LIT 30 
+LOD 0 6 
+LOD 0 5 
+LOD 0 4 
+LOD 0 3 
+CAL 0 23 
+STO 0 3 
+STO 0 4 
+STO 0 5 
+STO 0 6 
+INC -2 
+INC -1 
 HLT 

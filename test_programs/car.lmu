@@ -1,0 +1,51 @@
+class Car {
+    int color = 0;
+    int model = 0;
+    int size = 0;
+    int location = 0;
+
+    method getSize() {
+        return this.size;
+    }
+
+    method changeColor( color ) {
+        this.color = color;
+    }
+
+    method drive(distance, speed ) {
+        int dist_left = 0;
+
+        while( this.location < distance) do{
+            this.location = this.location + speed;
+            print(this.location);
+
+            dist_left = distance - this.location;
+            if( dist_left <= 12) then{
+                print(1111);
+                print(dist_left);
+            }
+        }
+
+        if( distance - this.location != 0)then{
+            print(55555);
+        }
+    }
+}
+
+
+inst Car car1;
+
+car1.color = 5;
+car1.model = 33;
+car1.size = 2;
+
+print(car1.color);
+car1.changeColor(393);
+print(car1.color);
+
+print(car1.getSize());
+
+car1.drive(30, 4);
+
+car1.location = 0;
+car1.drive(30, 5);
