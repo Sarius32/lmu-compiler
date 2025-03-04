@@ -7,8 +7,8 @@ from nodes import ArgDefNode, AttributeDefNode, InstanceNode, ReturnNode, Variab
     InstAttrUseNode, MethodDefNode, FunctionDefNode, FuncCallNode, MethodCallNode, InstMethodCallNode, WriteNode, \
     IfThenElseNode, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
     ComparisonNode, Expression, Statement, UseNode, CallNode
-
 from tokens import Operator
+
 from variable import MethodStore, ProgramStore, TypeStore, VariableStore
 
 
@@ -470,8 +470,10 @@ class CodeGenerator:
     def _instanciate(self, instance_node: InstanceNode):
         type_store = self._program_tables.types[instance_node.type_]
         constructor = type_store.methods[""] #CONSTRUCTOR
-        self._add_instruction_line(INCREMENT, [type_store.size]) #Make store for object returned by CONSTRUCTOR
-        self._add_instruction_line(CALL, [self._current_base, constructor.adress])   
+        type_size = type_store.size
+        if type_size > 0:
+            self._add_instruction_line(INCREMENT, [type_size]) #Make store for object returned by CONSTRUCTOR
+            self._add_instruction_line(CALL, [self._current_base, constructor.adress])   
 
 
     def _general_method_call(self, call_node: MethodCallNode | InstMethodCallNode):
@@ -480,9 +482,9 @@ class CodeGenerator:
 
         #2. Push Parameters on stack, reversed
         arg_count = 0
-        for param in call_node.args[::-1]:
+        for argument in call_node.args[::-1]:
             arg_count += 1
-            self._handle_expression(param)
+            self._handle_expression(argument)
         
         #3. Push Objec on stack
             #Get type of calling object
