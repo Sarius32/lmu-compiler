@@ -67,7 +67,7 @@ class CodeGenerator:
         self._context_method_func = str()
 
         self._return_adress = 0
-        self._current_base = 0
+        #self._current_base = 0
         
         ###
         #Initialize Type INT
@@ -119,7 +119,7 @@ class CodeGenerator:
             vars_comulated_size += type_.size
 
             start_adress = stack_pointer+1
-            variable_store = VariableStore(variable.name, start_adress, self._current_base, type_.name)
+            variable_store = VariableStore(variable.name, start_adress, 0, type_.name)
             store_var[variable_store.name] = variable_store
 
             match variable.value:
@@ -206,9 +206,7 @@ class CodeGenerator:
             var = self._program_tables.variables[variable.name]
 
         address = var.address
-        """TO DO BASE"""
-        base = self._current_base - var.base
-        self._add_instruction_line(LOAD, [base, address]) 
+        self._add_instruction_line(LOAD, [0, address]) #base = 0 (no global variables)
             
 
     def _load_arg(self, arg: ArgUseNode):
@@ -225,8 +223,7 @@ class CodeGenerator:
         (offset, type_) = method_func_store.arguments[arg.name]
 
         address = offset #Argument offset alread computed (as negative int)
-        base = 0 #In current Method """TO DO BASE"""
-        self._add_instruction_line(LOAD, [base, address])
+        self._add_instruction_line(LOAD, [0, address]) #base = 0 (no global variables)
 
 
     def _load_attribute(self, attribute: AttrUseNode):
@@ -236,8 +233,7 @@ class CodeGenerator:
         variable_store = type_store.instance_vars[attribute.name]
 
         address = -variable_store.address-1
-        base = 0 #In current Method """TO DO BASE"""
-        self._add_instruction_line(LOAD, [base, address])
+        self._add_instruction_line(LOAD, [0, address]) #base = 0 (no global variables)
 
 
     def _load_inst_attribute(self, inst_attribute: InstAttrUseNode):
@@ -250,8 +246,7 @@ class CodeGenerator:
         variable_store = variable_type.instance_vars[attribute_name]
 
         address = variable.address + variable_store.address
-        base = 0 #In main """TO DO BASE"""
-        self._add_instruction_line(LOAD, [base, address])
+        self._add_instruction_line(LOAD, [0, address]) #base = 0 (no global variables)
 
         #endregion
 
@@ -270,9 +265,7 @@ class CodeGenerator:
             var = self._program_tables.variables[variable.name]
 
         address = var.address
-        """TO DO BASE"""
-        base = self._current_base - var.base
-        self._add_instruction_line(STORE, [base, address]) 
+        self._add_instruction_line(STORE, [0, address]) #base = 0 (no global variables)
 
 
     def _store_arg(self, arg: ArgUseNode):
@@ -289,8 +282,7 @@ class CodeGenerator:
         (offset, type_) = method_func_store.arguments[arg.name]
 
         address = offset #Argument offset alread computed (as negative int)
-        base = 0 #In current Method """TO DO BASE"""
-        self._add_instruction_line(STORE, [base, address])
+        self._add_instruction_line(STORE, [0, address]) #base = 0 (no global variables)
 
 
     def _store_attribute(self, attribute: AttrUseNode):
@@ -300,8 +292,7 @@ class CodeGenerator:
         variable_store = type_store.instance_vars[attribute.name]
 
         address = -variable_store.address-1
-        base = 0 #In current Method """TO DO BASE"""
-        self._add_instruction_line(STORE, [base, address])
+        self._add_instruction_line(STORE, [0, address]) #base = 0 (no global variables)
             
 
     def _store_inst_attribute(self, inst_attribute: InstAttrUseNode):
@@ -314,8 +305,7 @@ class CodeGenerator:
         variable_store = variable_type.instance_vars[attribute_name]
 
         address = variable.address + variable_store.address
-        base = 0 #In main """TO DO BASE"""
-        self._add_instruction_line(STORE, [base, address])
+        self._add_instruction_line(STORE, [0, address]) #base = 0 (no global variables)
 
         #endregion
     #endregion
@@ -373,7 +363,7 @@ class CodeGenerator:
 
     def _function_call(self, call_node : FuncCallNode):
         #1. Add return_value storage
-        self._add_instruction_line(INCREMENT, [1]) #change for bigger types """TO DO"""
+        self._add_instruction_line(INCREMENT, [1]) #change for bigger types
 
         #2. Push Parameters on stack, reversed
         arg_count = 0
@@ -383,10 +373,10 @@ class CodeGenerator:
         
         #3. Call Function
         func = self._program_tables.functions[call_node.name]
-        self._add_instruction_line(CALL, [0, func.adress]) # """TO DO BASE"""
+        self._add_instruction_line(CALL, [0, func.adress])
 
         #4. CleanUp after Return delete Arg copies
-        self._add_instruction_line(INCREMENT, [-arg_count]) #base should b 0
+        self._add_instruction_line(INCREMENT, [-arg_count])
 
 #endregion
 
@@ -423,7 +413,7 @@ class CodeGenerator:
                 case _:
                     raise TypeError(f"Unexpected type: {type(attribute.value)} in Class attribute")
             
-            self._add_instruction_line(STORE, [0, -size , f"# ATTRIBUTE: {attribute.name}"]) #base should be 0 to set return of constructor
+            self._add_instruction_line(STORE, [0, -size , f"# ATTRIBUTE: {attribute.name}"]) 
         self._add_instruction_line(RETURN, [])
         
 
@@ -475,7 +465,7 @@ class CodeGenerator:
         type_size = type_store.size
         if type_size > 0:
             self._add_instruction_line(INCREMENT, [type_size]) #Make store for object returned by CONSTRUCTOR
-            self._add_instruction_line(CALL, [self._current_base, constructor.adress])   
+            self._add_instruction_line(CALL, [0, constructor.adress])   
 
 
     def _general_method_call(self, call_node: MethodCallNode | InstMethodCallNode):
@@ -540,7 +530,7 @@ class CodeGenerator:
                 self._handle_return(statement)
             case CallNode():
                 self._handle_call_node(statement)
-                self._add_instruction_line(INCREMENT, [-1]) #Delete Return for only calls
+                self._add_instruction_line(INCREMENT, [-1]) #Delete Return for call without assignment
             case _:
                 raise TypeError(f"Unexpected type: {type(statement)} for a statment")
             
