@@ -15,7 +15,7 @@ function faculty_rec( n ) {
         return n;
     }
 
-    return n * fac_rec(n - 1)
+    return n * faculty_rec(n - 1);
 }
 
 int n = 0;
