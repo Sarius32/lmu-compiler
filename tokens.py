@@ -26,6 +26,8 @@ class Keyword(Enum):
     IF = "if"
     THEN = "then"
     ELSE = "else"
+    FOR = "for"
+    IN = "in"
     WHILE = "while"
     DO = "do"
 

@@ -19,12 +19,6 @@ class OperationNode(Node):
     operation: Operator
     right: Expression
 
-    def get_identifiers(self):
-        ids = set()
-        ids.update(self.left.get_identifiers() if type(self.left) != int else [])
-        ids.update(self.right.get_identifiers() if type(self.right) != int else [])
-        return ids
-
     def get_pre_evaluated(self):
         op_dict = {
             Operator.PLUS: lambda left, right: int(left + right),
@@ -48,9 +42,6 @@ class OperationNode(Node):
 class InvertNode(Node):
     condition: ComparisonNode
 
-    def get_identifiers(self):
-        return set(self.condition.get_identifiers() if type(self.condition) != int else [])
-
     def get_pre_evaluated(self):
         # if possible => reduce condition
         self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
@@ -64,12 +55,6 @@ class ComparisonNode(Node):
     left: Expression | InvertNode
     operation: Operator
     right: Expression | InvertNode
-
-    def get_identifiers(self):
-        ids = set()
-        ids.update(self.left.get_identifiers() if type(self.left) != int else [])
-        ids.update(self.right.get_identifiers() if type(self.right) != int else [])
-        return ids
 
     def get_pre_evaluated(self):
         op_dict = {
@@ -127,30 +112,29 @@ class VariableDefNode(Node):
 
 ### Argument/Attribute/Variable Reference/Use Nodes
 
-class UseNode(Node):
-    def get_identifiers(self):
-        return self
-
 
 @dataclass
-class ArgUseNode(UseNode):
+class ArgUseNode(Node):
     name: str
 
 
 @dataclass
-class AttrUseNode(UseNode):
+class AttrUseNode(Node):
     name: str
 
 
 @dataclass
-class VarUseNode(UseNode):
+class VarUseNode(Node):
     name: str
 
 
 @dataclass
-class InstAttrUseNode(UseNode):
+class InstAttrUseNode(Node):
     class_name: str
     name: str
+
+
+UseNode = ArgUseNode | AttrUseNode | VarUseNode | InstAttrUseNode
 
 
 ### Function/Method Definition Nodes
@@ -181,19 +165,14 @@ class FunctionDefNode(MethodDefNode):
 ### Function/Method Call Nodes
 
 
-
 @dataclass
 class CallNode(Node):
     name: str
     args: list[Expression]
 
-    def get_identifiers(self):
-        ids = set()
-        for arg in self.args:
-            ids.update(arg.get_identifiers() if type(arg) != int else [])
-        return ids
 
-Expression = UseNode | OperationNode | int | CallNode
+Expression = OperationNode | UseNode | CallNode | int
+
 
 @dataclass
 class FuncCallNode(CallNode):
@@ -248,6 +227,27 @@ class IfThenElseNode(Node):
 
 
 @dataclass
+class ForLoop(Node):
+    loop_var: VarUseNode
+    lower: Expression
+    upper: Expression
+    stmts: list[Statement]
+
+    def get_pre_evaluated(self):
+        self.lower = self.lower.get_pre_evaluated() if type(self.lower) != int else self.lower
+        self.upper = self.upper.get_pre_evaluated() if type(self.upper) != int else self.upper
+
+        stmts = []
+        for stmt in self.stmts:
+            new_stmt = stmt.get_pre_evaluated()
+            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
+                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
+        self.stmts = stmts
+
+        return self
+
+
+@dataclass
 class WhileNode(Node):
     condition: ComparisonNode
     do: list[Statement]
@@ -290,7 +290,7 @@ class ReturnNode(Node):
         return self
 
 
-Statement = WriteNode | IfThenElseNode | WhileNode | AssignmentNode | CallNode | ReturnNode
+Statement = WriteNode | IfThenElseNode | ForLoop | WhileNode | AssignmentNode | CallNode | ReturnNode
 
 
 ### Container Nodes

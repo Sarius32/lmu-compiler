@@ -4,7 +4,7 @@ from enum import Enum
 from lexer import Lexer
 from nodes import ArgDefNode, AttributeDefNode, InstanceNode, VariableDefNode, ArgUseNode, AttrUseNode, VarUseNode, \
     InstAttrUseNode, MethodDefNode, FunctionDefNode, FuncCallNode, MethodCallNode, InstMethodCallNode, WriteNode, \
-    IfThenElseNode, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
+    IfThenElseNode, ForLoop, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
     ComparisonNode, ReturnNode
 from tokens import Token, Identifier, Literal, Keyword, Separator, Operator
 from utils import interrupt_on_error
@@ -279,7 +279,7 @@ class Parser:
 
     def _statement(self):
         """ Function to parse statement tokens.
-        Expected Tokens: "print" "(" [ expression ] ")" ";" | if_statement | while_loop | "return" expression ";" | var_or_func_call [ "=" ( "input" "(" ")" | expression ) ] ";" """
+        Expected Tokens: "print" "(" [ expression ] ")" ";" | if_statement | for_loop | while_loop | "return" expression ";" | var_or_func_call [ "=" ( "input" "(" ")" | expression ) ] ";" """
         if self._curr_token == Keyword.PRINT:  # print statement
             self._next_token()
 
@@ -300,6 +300,9 @@ class Parser:
 
         if self._curr_token == Keyword.IF:  # if statement
             return self._if_stmt()
+
+        if self._curr_token == Keyword.FOR:  # for loop
+            return self._for_loop()
 
         if self._curr_token == Keyword.WHILE:  # while statement
             return self._while_loop()
@@ -408,6 +411,48 @@ class Parser:
             self._next_token()  # skip "}"
 
         return IfThenElseNode(condition, then, alternative)
+
+    def _for_loop(self):
+        """ Function to parse for_loop tokens.
+        Expected Tokens: "for" name "in" "(" expression "," expression ")" "do" "{" { statement } "}" """
+        self._next_token()  # skip "for"
+
+        self._check_curr_token(Identifier, "Variable identifier expected")
+        loop_var = self._curr_token.value
+        if loop_var not in [v.name for v in
+                            self._vars]:  # can only use local var (either method, function or program var)
+            interrupt_on_error(f"Loop var has to be defined!")
+        self._next_token()
+
+        self._check_curr_token(Keyword.IN, "in expected")
+        self._next_token()
+
+        self._check_curr_token(Separator.L_ROUND, "( expected")
+        self._next_token()
+
+        lower = self._expression()
+
+        self._check_curr_token(Separator.COMMA, ", expected")
+        self._next_token()
+
+        upper = self._expression()
+
+        self._check_curr_token(Separator.R_ROUND, ") expected")
+        self._next_token()
+
+        self._check_curr_token(Keyword.DO, "do expected")
+        self._next_token()
+
+        self._check_curr_token(Separator.L_CURLY, "{ expected")
+        self._next_token()
+
+        stmts = []
+        while self._curr_token != Separator.R_CURLY:
+            stmts.append(self._statement())
+
+        self._next_token()  # skip "}"
+
+        return ForLoop(VarUseNode(loop_var), lower, upper, stmts)
 
     def _while_loop(self):
         """ Function to parse while_loop tokens.
