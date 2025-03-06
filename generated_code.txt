@@ -1,5 +1,5 @@
 RST 
-JMP 61 # JUMP to MAIN 
+JMP 88 # JUMP to MAIN 
 INC 0 #  Car  : CONSTRUCTOR [instruction can be deleted] 
 LIT 0 
 STO 0 -1 # ATTRIBUTE: color 
@@ -58,6 +58,33 @@ JOT 60
 LIT 55555 
 WRI 
 JMP 60 
+RET 
+INC 0 # METHOD:  show  [instruction can be deleted] 
+INC 1 
+LIT 0 
+STO 0 3 # VAR: int 0_i 
+LOD 0 3 
+WRI 
+LIT 0 
+STO 0 3 
+LOD 0 3 
+LOD 0 -5 
+OPR < 
+JOF 81 
+LOD 0 3 
+LOD 0 3 
+OPR * 
+WRI 
+LOD 0 3 
+LIT 1 
+OPR + 
+JMP 68 
+LOD 0 3 
+LIT 1 
+OPR - 
+STO 0 3 
+LOD 0 3 
+WRI 
 RET 
 INC 0 # MAIN: [instruction can be deleted] 
 INC 4 
@@ -131,5 +158,20 @@ STO 0 4
 STO 0 5 
 STO 0 6 
 INC -2 
+INC -1 
+INC 1 
+LIT 4 
+LIT 4 
+OPR + 
+LOD 0 6 
+LOD 0 5 
+LOD 0 4 
+LOD 0 3 
+CAL 0 61 
+STO 0 3 
+STO 0 4 
+STO 0 5 
+STO 0 6 
+INC -1 
 INC -1 
 HLT 

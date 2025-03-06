@@ -30,6 +30,16 @@ class Car {
             print(55555);
         }
     }
+
+    method show( upper ) {
+        int i = 0;
+
+        print(i);
+        for i in (0, upper) do {
+            print(i*i);
+        }
+        print(i);
+    }
 }
 
 
@@ -49,3 +59,5 @@ car1.drive(30, 4);
 
 car1.location = 0;
 car1.drive(30, 5);
+
+car1.show(4+4);

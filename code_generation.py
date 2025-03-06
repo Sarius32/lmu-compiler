@@ -3,7 +3,7 @@ from enum import Enum
 
 from lexer import Lexer
 from parser import Parser
-from nodes import ArgDefNode, AttributeDefNode, InstanceNode, ReturnNode, VariableDefNode, ArgUseNode, AttrUseNode, VarUseNode, \
+from nodes import ArgDefNode, AttributeDefNode, ForLoop, InstanceNode, ReturnNode, VariableDefNode, ArgUseNode, AttrUseNode, VarUseNode, \
     InstAttrUseNode, MethodDefNode, FunctionDefNode, FuncCallNode, MethodCallNode, InstMethodCallNode, WriteNode, \
     IfThenElseNode, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
     ComparisonNode, Expression, Statement, UseNode, CallNode
@@ -14,7 +14,11 @@ from variable import MethodStore, ProgramStore, TypeStore, VariableStore
 
         
 def is_expression(value: Expression) -> bool:
-    return isinstance(value, (OperationNode, UseNode, CallNode, int))
+    return isinstance(value, (OperationNode, UseNode, CallNode, int)) or is_useNode(value)
+        
+def is_useNode(value: UseNode) -> bool:
+    return isinstance(value, (ArgUseNode, AttrUseNode, VarUseNode, InstAttrUseNode))
+
         
 def convert_operator(op: Operator) -> tuple[str, bool]:
     match op:
@@ -526,6 +530,8 @@ class CodeGenerator:
                 self._handle_if_else(statement)
             case WhileNode():
                 self._handle_while(statement)
+            case ForLoop():
+                self._handle_forloop(statement)
             case ReturnNode():
                 self._handle_return(statement)
             case CallNode():
@@ -545,7 +551,7 @@ class CodeGenerator:
                 self._add_instruction_line(LITERAL, [expression])
             case OperationNode():
                 self._handle_operation(expression)
-            case UseNode():
+            case _ if is_useNode(expression):
                 self._handle_use_node_load(expression)
             case CallNode():
                 self._handle_call_node(expression)
@@ -599,6 +605,47 @@ class CodeGenerator:
 
         ###
         end_adress.append(self._get_line_number())
+            
+
+    def _handle_forloop(self, for_node: ForLoop):
+        #1. Init var as lower
+        self._handle_expression(for_node.lower)
+        #2. Safe line of condition to jump ouside of loop if condition is false
+        condition_line = self._get_line_number()
+        #First store lower, next store increased
+        self._store_var(for_node.loop_var)
+
+
+        #3.Load lower and upper and compare
+        #load lower
+        self._load_var(for_node.loop_var)
+        #load upper
+        self._handle_expression(for_node.upper)
+        #compare
+        self._add_instruction_line(OPERATOR, ["<"])
+
+        #4. Evaluate condition (Jump behind loop, if condition is false)
+        end_adress = self._add_instruction_line(JMP_ON_FALSE, [])
+
+        #4. Statements inside of loop
+        self._handle_multiple_statements(for_node.stmts)
+
+        #5. Increase variable
+        self._load_var(for_node.loop_var)
+        self._add_instruction_line(LITERAL, [1])
+        self._add_instruction_line(OPERATOR, ["+"])
+
+        #6. Jump back to condition
+        self._add_instruction_line(JUMP, [condition_line])
+
+        ###
+        end_adress.append(self._get_line_number())
+
+        #7. Reduce variable if it was to big
+        self._load_var(for_node.loop_var)
+        self._add_instruction_line(LITERAL, [1])
+        self._add_instruction_line(OPERATOR, ["-"])
+        self._store_var(for_node.loop_var)
 
 
     def _handle_comparison_node(self, comp_node: ComparisonNode) -> bool:
