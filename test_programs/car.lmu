@@ -21,13 +21,12 @@ class Car {
 
             dist_left = distance - this.location;
             if( dist_left <= 12) then{
-                print(1111);
                 print(dist_left);
             }
         }
 
         if( distance - this.location != 0)then{
-            print(55555);
+            print( dist_left * (-1));
         }
     }
 

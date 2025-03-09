@@ -40,6 +40,8 @@ int c = 0; #8
 int d = 7; #7
 int e = 0; #555
 
+int loop_var = 0;
+
 int add_w = 13; #13
 
 a = (2 * 3) + ( d - 13 ) / ( 3 * 4 - 10);
@@ -59,11 +61,9 @@ else{
 }
 print( e );
 
-# PROBLEM: ComparisonNode is not defined as OperationNode: 554+1 ... if (e == 554+1) then {}
 if (e == 555) then {
     c2.addWheel( add_w );
     print( 3333333332 );
-    #PROBLEM: add_w = c2.addWheel( 13 ); not possible, because Assignment can not be a Call
 }
 
 print( c2.color ); #42
@@ -80,3 +80,14 @@ while ( add_w < c1.wheels ) do {
 
 fac.faculty(6);
 print(fac.n);
+
+print(100000000001);
+print(e);
+for loop_var in (0, e) do{
+    a = loop_var / 25;
+    b = loop_var - 25 * a;
+    if ( b == 0) then
+    {
+        print( loop_var);
+    }
+}
