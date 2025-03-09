@@ -224,6 +224,8 @@ class IfThenElseNode(Node):
 
         if type(self.condition) == int:
             return self.then if self.condition else self.alternative
+        
+        return self
 
 
 @dataclass
@@ -325,3 +327,11 @@ class ProgramNode(Node):
         self.stmts = stmts
 
         return self
+
+### helper functions for matching
+        
+def is_expression(value: Expression) -> bool:
+    return isinstance(value, (OperationNode, UseNode, CallNode, int)) or is_useNode(value)
+        
+def is_useNode(value: UseNode) -> bool:
+    return isinstance(value, (ArgUseNode, AttrUseNode, VarUseNode, InstAttrUseNode))
