@@ -6,18 +6,11 @@ from parser import Parser
 from nodes import ArgDefNode, AttributeDefNode, ForLoop, InstanceNode, ReturnNode, VariableDefNode, ArgUseNode, AttrUseNode, VarUseNode, \
     InstAttrUseNode, MethodDefNode, FunctionDefNode, FuncCallNode, MethodCallNode, InstMethodCallNode, WriteNode, \
     IfThenElseNode, WhileNode, InputNode, AssignmentNode, ClassNode, ProgramNode, OperationNode, InvertNode, \
-    ComparisonNode, Expression, Statement, UseNode, CallNode
+    ComparisonNode, Expression, Statement, UseNode, CallNode, is_expression, is_useNode
 from tokens import Operator
 
 from variable import MethodStore, ProgramStore, TypeStore, VariableStore
 
-
-        
-def is_expression(value: Expression) -> bool:
-    return isinstance(value, (OperationNode, UseNode, CallNode, int)) or is_useNode(value)
-        
-def is_useNode(value: UseNode) -> bool:
-    return isinstance(value, (ArgUseNode, AttrUseNode, VarUseNode, InstAttrUseNode))
 
         
 def convert_operator(op: Operator) -> tuple[str, bool]:
@@ -714,7 +707,7 @@ class CodeGenerator:
 if __name__ == "__main__":
     path =  "./test_programs/"
     #program = "faculty_function.lmu"
-    program = "faculty_class.lmu"
+    #program = "faculty_class.lmu"
     program = "car.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
