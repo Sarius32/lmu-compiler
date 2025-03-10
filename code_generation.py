@@ -50,12 +50,13 @@ HALT = "HLT"
 
 class CodeGenerator:
     
-    def __init__(self, syntax_tree: ProgramNode):
+    def __init__(self, syntax_tree: ProgramNode, generate_comments: bool = False):
         #Instructions for abstract machine
         self._code = list[tuple[str, list[str]]]()
 
         #Syntaxtree from parsing
         self._syntax_tree = syntax_tree
+        self._generate_comments = generate_comments
 
         self._program_tables = ProgramStore(dict[str, TypeStore](), dict[str, VariableStore](), dict[str, MethodStore]())
 
@@ -76,8 +77,6 @@ class CodeGenerator:
         #Jump to adress of Main Program
         main_prog_adress = self._add_instruction_line(JUMP, [])
 
-        #Global Variables for inside function use
-
         #Define Classes of Program
         self._define_classes(self._syntax_tree.classes)
 
@@ -86,8 +85,9 @@ class CodeGenerator:
 
         ### Main Program starts ###
         main_prog_adress.append(self._get_line_number())
-        main_prog_adress.append("# JUMP to MAIN")
-        self._add_instruction_line(INCREMENT, [0, "# MAIN: [instruction can be deleted]"])
+        if generate_comments:
+            main_prog_adress.append("# JUMP to MAIN")
+            self._add_instruction_line(INCREMENT, [0, "# MAIN: [instruction can be deleted]"])
 
         #declare variables of Main program
         self._declare_variables(self._syntax_tree.vars_, self._program_tables.variables)
@@ -132,7 +132,9 @@ class CodeGenerator:
             
             #Store  values at right place
             for i in range(type_.size):
-                self._add_instruction_line(STORE, [0, start_adress+i, f"# VAR: {type_.name} {i}_{variable.name}"]) # """TO DO BASE"""
+                comment_ = self._add_instruction_line(STORE, [0, start_adress+i]) # """TO DO BASE"""
+                if self._generate_comments:
+                    comment_.append(f"# VAR: {type_.name} {i}_{variable.name}")
         
             stack_pointer += type_.size
 
@@ -332,7 +334,8 @@ class CodeGenerator:
 
         line = self._get_line_number()
         f_name = func_node.name
-        self._add_instruction_line(INCREMENT, [0 ,"# FUNCTION: ", f_name, " [instruction can be deleted]"])
+        if self._generate_comments:
+            self._add_instruction_line(INCREMENT, [0 ,"# FUNCTION: ", f_name, " [instruction can be deleted]"])
 
         f_args = dict[str, tuple[int, str]]() #offset, type
         var_store = dict[str, VariableStore]() #Variables of Function
@@ -387,7 +390,8 @@ class CodeGenerator:
         attributes = dict[str, VariableStore]()
         line = self._get_line_number()
 
-        self._add_instruction_line(INCREMENT, [0 , "# ", class_node.name, " : CONSTRUCTOR [instruction can be deleted]"])
+        if self._generate_comments:
+            self._add_instruction_line(INCREMENT, [0 , "# ", class_node.name, " : CONSTRUCTOR [instruction can be deleted]"])
 
 
         #Parameters have to be on stack B -1
@@ -411,7 +415,9 @@ class CodeGenerator:
                 case _:
                     raise TypeError(f"Unexpected type: {type(attribute.value)} in Class attribute")
             
-            self._add_instruction_line(STORE, [0, -size , f"# ATTRIBUTE: {attribute.name}"]) 
+            c_ = self._add_instruction_line(STORE, [0, -size]) 
+            if self._generate_comments:
+                c_.append(f"# ATTRIBUTE: {attribute.name}")
         self._add_instruction_line(RETURN, [])
         
 
@@ -427,7 +433,8 @@ class CodeGenerator:
     def _handle_method(self, method: MethodDefNode, methods_dict: dict[str, MethodStore]) -> MethodStore:
 
         line = self._get_line_number() #Call adress
-        self._add_instruction_line(INCREMENT, [0 ,"# METHOD: ", method.name, " [instruction can be deleted]"])
+        if self._generate_comments:
+            self._add_instruction_line(INCREMENT, [0 ,"# METHOD: ", method.name, " [instruction can be deleted]"])
 
         m_arguments = dict[str, tuple[int, str]]() #offset, type
         var_store = dict[str, VariableStore]() #Variables of Method
@@ -727,5 +734,5 @@ if __name__ == "__main__":
     parser = Parser(tokens)
     abstract_syntax_tree = parser.get_program_ast()
 
-    codeGenerator = CodeGenerator(abstract_syntax_tree)
+    codeGenerator = CodeGenerator(abstract_syntax_tree, True)
     codeGenerator.write_file("generated_code.txt")
