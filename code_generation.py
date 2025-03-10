@@ -575,14 +575,18 @@ class CodeGenerator:
             self._handle_statement(statement)
 
         #4. Jump to end/after else
-        end_adress = self._add_instruction_line(JUMP, [])
+        if len(if_else_node.alternative) != 0:
+            end_adress = self._add_instruction_line(JUMP, [])
 
-        #5. Else stament
-        else_adress.append(self._get_line_number())
-        self._handle_multiple_statements(if_else_node.alternative)
-        
-        ###
-        end_adress.append(self._get_line_number())
+            #5. Else stament
+            else_adress.append(self._get_line_number())
+            self._handle_multiple_statements(if_else_node.alternative)
+            
+            ###
+            end_adress.append(self._get_line_number())
+        else:
+            # No else statment -> end
+            else_adress.append(self._get_line_number())
             
 
     def _handle_while(self, while_node: WhileNode):
