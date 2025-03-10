@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
+from typing import Iterable
 
 from lexer import Operator
+from utils import only_reachable_code
 
 
 class Node(ABC):
     def get_pre_evaluated(self):
+        """ Function prototype to evaluate expressions that are numeric only """
+        return self
+
+    def get_reachable_only(self):
+        """ Function prototype to remove nodes that are unreachable """
         return self
 
 
@@ -20,6 +27,7 @@ class OperationNode(Node):
     right: Expression
 
     def get_pre_evaluated(self):
+        """ Evaluates if both sides can be reduced into int => just returns the int result (ELSE keeps reduced node) """
         op_dict = {
             Operator.PLUS: lambda left, right: int(left + right),
             Operator.MINUS: lambda left, right: int(left - right),
@@ -43,20 +51,22 @@ class InvertNode(Node):
     condition: ComparisonNode
 
     def get_pre_evaluated(self):
+        """ Tries to evaluate the condition into int and return the inverted value if possible """
         # if possible => reduce condition
         self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
 
         # if possible directly calculate the result and replace the node
-        return int(not self.condition) if type(self.condition) == int else self
+        return int(not bool(self.condition)) if type(self.condition) == int else self
 
 
 @dataclass
 class ComparisonNode(Node):
-    left: Expression | InvertNode
+    left: Expression
     operation: Operator
-    right: Expression | InvertNode
+    right: Expression
 
     def get_pre_evaluated(self):
+        """ Evaluates if both sides can be reduced into int => just returns the int result (ELSE keeps reduced node) """
         op_dict = {
             Operator.EQUALS: lambda left, right: int(left == right),
             Operator.SMALLER: lambda left, right: int(left < right),
@@ -148,12 +158,15 @@ class MethodDefNode(Node):
     stmts: list[Statement]
 
     def get_pre_evaluated(self):
-        stmts = []
-        for stmt in self.stmts:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
-        self.stmts = stmts
+        self.vars_ = [var.get_pre_evaluated() for var in self.vars_]
+        self.stmts = [stmt.get_pre_evaluated() for stmt in self.stmts]
+        return self
+
+    def get_reachable_only(self):
+        self.stmts = only_reachable_code(self.stmts)
+        if ReturnNode in [type(t) for t in self.stmts]:
+            ret_loc = [type(t) for t in self.stmts].index(ReturnNode)
+            self.stmts = self.stmts[:ret_loc + 1]
 
         return self
 
@@ -196,6 +209,10 @@ class InstMethodCallNode(CallNode):
 class WriteNode(Node):
     expr: Expression | None
 
+    def get_pre_evaluated(self):
+        self.expr = self.expr.get_pre_evaluated() if self.expr is not None and type(self.expr) != int else self.expr
+        return self
+
 
 @dataclass
 class IfThenElseNode(Node):
@@ -204,27 +221,25 @@ class IfThenElseNode(Node):
     alternative: list[Statement]
 
     def get_pre_evaluated(self):
-        # if possible => reduce condition
         self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
+        self.then = [stmt.get_pre_evaluated() for stmt in self.then]
+        self.alternative = [stmt.get_pre_evaluated() for stmt in self.alternative]
+        return self
 
-        then = []
-        for stmt in self.then:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                then.append(new_stmt) if type(new_stmt) != list else [then.append(stmt_) for stmt_ in new_stmt]
-        self.then = then
+    def get_reachable_only(self):
+        self.then = only_reachable_code(self.then)
+        if ReturnNode in [type(t) for t in self.then]:
+            ret_loc = [type(t) for t in self.then].index(ReturnNode)
+            self.then = self.then[:ret_loc + 1]
 
-        alternative = []
-        for stmt in self.alternative:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                alternative.append(new_stmt) if type(new_stmt) != list else [alternative.append(stmt_) for stmt_ in
-                                                                             new_stmt]
-        self.alternative = alternative
+        self.alternative = only_reachable_code(self.alternative)
+        if ReturnNode in [type(t) for t in self.alternative]:
+            ret_loc = [type(t) for t in self.alternative].index(ReturnNode)
+            self.alternative = self.alternative[:ret_loc + 1]
 
         if type(self.condition) == int:
             return self.then if self.condition else self.alternative
-        
+
         return self
 
 
@@ -238,32 +253,33 @@ class ForLoop(Node):
     def get_pre_evaluated(self):
         self.lower = self.lower.get_pre_evaluated() if type(self.lower) != int else self.lower
         self.upper = self.upper.get_pre_evaluated() if type(self.upper) != int else self.upper
+        self.stmts = [stmt.get_pre_evaluated() for stmt in self.stmts]
+        return self
 
-        stmts = []
-        for stmt in self.stmts:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
-        self.stmts = stmts
+    def get_reachable_only(self):
+        self.stmts = only_reachable_code(self.stmts)
+        if ReturnNode in [type(t) for t in self.stmts]:
+            ret_loc = [type(t) for t in self.stmts].index(ReturnNode)
+            self.stmts = self.stmts[:ret_loc + 1]
 
         return self
 
 
 @dataclass
 class WhileNode(Node):
-    condition: ComparisonNode
+    condition: InvertNode | ComparisonNode
     do: list[Statement]
 
     def get_pre_evaluated(self):
-        # if possible => reduce condition
         self.condition = self.condition.get_pre_evaluated() if type(self.condition) != int else self.condition
+        self.do = [stmt.get_pre_evaluated() for stmt in self.do]
+        return self
 
-        do = []
-        for stmt in self.do:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                do.append(new_stmt) if type(new_stmt) != list else [do.append(stmt_) for stmt_ in new_stmt]
-        self.do = do
+    def get_reachable_only(self):
+        self.do = only_reachable_code(self.do)
+        if ReturnNode in [type(t) for t in self.do]:
+            ret_loc = [type(t) for t in self.do].index(ReturnNode)
+            self.do = self.do[:ret_loc + 1]
 
         return self
 
@@ -307,6 +323,10 @@ class ClassNode(Node):
         self.methods = [method.get_pre_evaluated() for method in self.methods]
         return self
 
+    def get_reachable_only(self):
+        self.methods = [method.get_reachable_only() for method in self.methods]
+        return self
+
 
 @dataclass
 class ProgramNode(Node):
@@ -318,20 +338,27 @@ class ProgramNode(Node):
     def get_pre_evaluated(self):
         self.classes = [class_.get_pre_evaluated() for class_ in self.classes]
         self.funcs = [func.get_pre_evaluated() for func in self.funcs]
+        self.vars_ = [var.get_pre_evaluated() for var in self.vars_]
+        self.stmts = [stmt.get_pre_evaluated() for stmt in self.stmts]
+        return self
 
-        stmts = []
-        for stmt in self.stmts:
-            new_stmt = stmt.get_pre_evaluated()
-            if new_stmt:  # don't append if stmt collapsed into no statement (i.e. if never TRUE)
-                stmts.append(new_stmt) if type(new_stmt) != list else [stmts.append(stmt_) for stmt_ in new_stmt]
-        self.stmts = stmts
+    def get_reachable_only(self):
+        self.classes = [class_.get_reachable_only() for class_ in self.classes]
+        self.funcs = [func.get_reachable_only() for func in self.funcs]
+
+        self.stmts = only_reachable_code(self.stmts)
+        if ReturnNode in [type(t) for t in self.stmts]:
+            ret_loc = [type(t) for t in self.stmts].index(ReturnNode)
+            self.stmts = self.stmts[:ret_loc + 1]
 
         return self
 
+
 ### helper functions for matching
-        
+
 def is_expression(value: Expression) -> bool:
     return isinstance(value, (OperationNode, UseNode, CallNode, int)) or is_useNode(value)
-        
+
+
 def is_useNode(value: UseNode) -> bool:
     return isinstance(value, (ArgUseNode, AttrUseNode, VarUseNode, InstAttrUseNode))
