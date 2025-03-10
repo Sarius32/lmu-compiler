@@ -1,4 +1,12 @@
+from dataclasses import dataclass
 from typing import Iterable
+
+
+@dataclass
+class TokenLocation:
+    line: int
+    start: int
+    end: int
 
 
 def interrupt_on_error(error_msg: str):
