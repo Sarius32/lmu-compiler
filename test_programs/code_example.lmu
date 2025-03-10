@@ -1,0 +1,37 @@
+class Example {
+    int color = 0;
+    int number = 0;
+    int size = 0;
+
+    method getSize() {
+        return this.size;
+    }
+
+    method changeColor( color ) {
+        while (this.color < color) do{
+            this.color = this.color + 1;
+        }
+    }
+}
+
+function example( n ) {
+    if( n == 1 ) then{
+        return n;
+    }
+
+    return n * example(n - 1);
+}
+
+inst Example example1;
+int a = 0;
+int b = 0;
+
+b = input();
+print(example(b));
+
+a = input();
+example1.changeColor(a);
+
+for b in (0, a) do {
+    print(example1.color);
+}

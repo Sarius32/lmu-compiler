@@ -93,6 +93,7 @@ class CodeGenerator:
         self._declare_variables(self._syntax_tree.vars_, self._program_tables.variables)
         
         #generate statments of Main
+        self._context_type = "/MAIN"
         self._handle_multiple_statements(self._syntax_tree.stmts)
 
         #End execution
@@ -210,7 +211,7 @@ class CodeGenerator:
         #Used by functions and methods
 
         #Get type of argument
-        if self._context_type == "FUNC":
+        if self._context_type == "/FUNC":
             method_func_store = self._program_tables.functions[self._context_method_func]
         else:
             type_store = self._program_tables.types[self._context_type]
@@ -269,7 +270,7 @@ class CodeGenerator:
         #Used by functions and methods
 
         #Get type of argument
-        if self._context_type == "FUNC":
+        if self._context_type == "/FUNC":
             method_func_store = self._program_tables.functions[self._context_method_func]
         else:
             type_store = self._program_tables.types[self._context_type]
@@ -337,7 +338,7 @@ class CodeGenerator:
         var_store = dict[str, VariableStore]() #Variables of Function
         functions[f_name] = MethodStore(f_name, line, f_args, var_store)
 
-        self._context_type = "FUNC" #Handle functions not classes
+        self._context_type = "/FUNC" #Handle functions not classes
         self._context_method_func = f_name
 
         #Args are only ints! ArgDefNodes are untyped
@@ -641,18 +642,24 @@ class CodeGenerator:
         self._store_var(for_node.loop_var)
 
 
-    def _handle_comparison_node(self, comp_node: ComparisonNode) -> bool:
-        if self._handle_part_of_comparison(comp_node.left):
-            self._add_instruction_line(OPERATOR, ["!"])    #Statment needs to be negated
+    def _handle_comparison_node(self, comp_node: ComparisonNode | InvertNode) -> bool:
+        match comp_node:
+            case ComparisonNode():
+                if self._handle_part_of_comparison(comp_node.left):
+                    self._add_instruction_line(OPERATOR, ["!"])    #Statment needs to be negated
 
-        if self._handle_part_of_comparison(comp_node.right):
-            self._add_instruction_line(OPERATOR, ["!"])    #Statment needs to be negated
+                if self._handle_part_of_comparison(comp_node.right):
+                    self._add_instruction_line(OPERATOR, ["!"])    #Statment needs to be negated
 
-        (operator, is_not) = convert_operator(comp_node.operation)
-        self._add_instruction_line(OPERATOR, [operator])
-        if is_not: #Statment needs to be negated
-            return True
-        return False
+                (operator, is_not) = convert_operator(comp_node.operation)
+                self._add_instruction_line(OPERATOR, [operator])
+                if is_not: #Statment needs to be negated
+                    return True
+                return False
+            
+            case InvertNode():
+                self._handle_comparison_node(comp_node.condition)
+                return True
 
 
     def _handle_part_of_comparison(self, node_lr: Expression | InvertNode):
@@ -668,9 +675,13 @@ class CodeGenerator:
                 raise TypeError(f"Unexpected type: {type(node_lr)} in Comparison PART")
     
     def _handle_return(self, return_node: ReturnNode):
-        self._handle_expression(return_node.expr)
-        self._add_instruction_line(STORE, [0, self._return_adress]) #Return current base!
-        self._add_instruction_line(RETURN, [])
+        if self._context_type == "/MAIN":
+            self._add_instruction_line(HALT, [])
+
+        else:
+            self._handle_expression(return_node.expr)
+            self._add_instruction_line(STORE, [0, self._return_adress]) #Return current base!
+            self._add_instruction_line(RETURN, [])
 
 #endregion
 
@@ -709,6 +720,8 @@ if __name__ == "__main__":
     #program = "faculty_function.lmu"
     #program = "faculty_class.lmu"
     program = "car.lmu"
+    program = "program.lmu"
+    program = "code_example.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)
