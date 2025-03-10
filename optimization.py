@@ -9,8 +9,15 @@ from parser import Parser
 
 class OptimizeNodes:
 
-    def __init__(self,  syntax_tree: ProgramNode):
-        self._syntax_tree = syntax_tree.get_pre_evaluated()
+    def __init__(self,  syntax_tree: ProgramNode, pre_evaluate: bool = True, remove_unreachable: bool = True, remove_unused: bool = True):
+
+        if pre_evaluate:
+            self._syntax_tree = syntax_tree.get_pre_evaluated()
+        else:
+            self._syntax_tree = syntax_tree
+
+        if remove_unreachable:
+            self._syntax_tree.get_reachable_only()
 
         self._variable_use = dict[str, bool]()
 
@@ -20,12 +27,12 @@ class OptimizeNodes:
         self._class_context = str()
         self._var_type = dict[str, str]() #name type
 
+        if remove_unused:
+            for cl in self._syntax_tree.classes:
+                self._class_use[cl.name] = False
+                self._method_use[cl.name] = dict[str, bool]()
 
-        for cl in self._syntax_tree.classes:
-            self._class_use[cl.name] = False
-            self._method_use[cl.name] = dict[str, bool]()
-
-        self._remove_unused()
+            self._remove_unused()
 
     def _remove_unused(self):
 
@@ -241,5 +248,5 @@ if __name__ == "__main__":
     optimizer = OptimizeNodes(abstract_syntax_tree)
     abstract_syntax_tree = optimizer.get_optimized_tree()
 
-    codeGenerator = CodeGenerator(abstract_syntax_tree)
+    codeGenerator = CodeGenerator(abstract_syntax_tree, True)
     codeGenerator.write_file("generated_code.txt")

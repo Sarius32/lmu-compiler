@@ -574,18 +574,18 @@ class CodeGenerator:
         for statement in if_else_node.then:
             self._handle_statement(statement)
 
-        #4. Jump to end/after else
         if len(if_else_node.alternative) != 0:
+            #4. Jump to end/after else
             end_adress = self._add_instruction_line(JUMP, [])
 
             #5. Else stament
             else_adress.append(self._get_line_number())
             self._handle_multiple_statements(if_else_node.alternative)
             
-            ###
+            ### end
             end_adress.append(self._get_line_number())
         else:
-            # No else statment -> end
+            ### No else statment -> end
             else_adress.append(self._get_line_number())
             
 
@@ -731,8 +731,8 @@ if __name__ == "__main__":
     #program = "faculty_function.lmu"
     #program = "faculty_class.lmu"
     program = "car.lmu"
-    program = "program.lmu"
-    program = "code_example.lmu"
+    #program = "program.lmu"
+    #program = "code_example.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)
