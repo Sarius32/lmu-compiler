@@ -25,6 +25,7 @@ class OptimizeNodes:
         self._class_use = dict[str, bool]() #class, use, methods
         self._method_use = dict[str, dict[str, bool]]() #class, methods
         self._class_context = str()
+        self._method_context = str()
         self._var_type = dict[str, str]() #name type
 
         if remove_unused:
@@ -36,10 +37,13 @@ class OptimizeNodes:
 
     def _remove_unused(self):
 
+        has_changed = False
+
         #search use in all statments of MAIN
         self._init_var_types(self._syntax_tree.vars_)
         self._search_in_statments(self._syntax_tree.stmts)
 
+        #Remove unused variables
         opt_vars = list[VariableDefNode]()
         for (variable, used) in self._variable_use.items():
             if used:
@@ -48,11 +52,15 @@ class OptimizeNodes:
                     raise TypeError(f"Unexpected Vartype: {variable}")
 
                 opt_vars.append(var)
+
+            else: 
+                has_changed = True
+            
             
         
         self._syntax_tree.vars_ = opt_vars
 
-        #Remove write of unused Variables
+        #Remove write of unused variables
         opt_stmts = list[Statement]()
         for (stmt) in self._syntax_tree.stmts:
             match stmt:
@@ -60,44 +68,59 @@ class OptimizeNodes:
                     var_used = self._variable_use.get(stmt.var.name, False)
                     if var_used:
                         opt_stmts.append(stmt)
-                    #else drop write
+                
+                    else: 
+                        has_changed = True
+
+                case InstMethodCallNode():
+                    var_used = self._variable_use.get(stmt.class_name, False)
+                    if var_used:
+                        opt_stmts.append(stmt)
+                
+                    else: 
+                        has_changed = True
+
                 case _:
                     opt_stmts.append(stmt)
         
         self._syntax_tree.stmts = opt_stmts
 
-        opt_funcs = list[FunctionDefNode]()
-        for (function, used) in self._func_use.items():
-            if used:
-                func = next((v for v in self._syntax_tree.funcs if v.name == function), None)
-                if not func:
-                    raise TypeError(f"Unexpected Function: {function}")
 
+        opt_funcs = list[FunctionDefNode]()
+        for func in self._syntax_tree.funcs:
+            func_used = self._func_use.get(func.name, False)
+            if func_used:
                 opt_funcs.append(func)
+            
+            else:
+                has_changed = True
 
         self._syntax_tree.funcs = opt_funcs
 
         opt_class = list[ClassNode]()
-        for (class_, used) in self._class_use.items():
-            if used:
-                cls = next((v for v in self._syntax_tree.classes if v.name == class_), None)
-                if not cls:
-                    raise TypeError(f"Unexpected Class: {class_}")
-
-
+        for class_ in self._syntax_tree.classes:
+            class_used = self._class_use.get(class_.name, False)
+            if class_used:
+                
                 opt_methods = list[MethodDefNode]()
-                for (method, used) in self._method_use[class_].items():
-                    if used:
-                        meth = next((v for v in cls.methods if v.name == method), None)
-                        if not meth:
-                            raise TypeError(f"Unexpected Method: {class_} {method}")
+                for method in class_.methods:
+                    method_used = self._method_use.get(class_.name, dict[str, bool]()).get(method.name, False)
+                    if method_used:
+                        opt_methods.append(method)
+                    else:
+                        has_changed = True
 
-                        opt_methods.append(meth)
+                class_.methods = opt_methods
 
-                cls.methods = opt_methods
-                opt_class.append(cls)
+                opt_class.append(class_)
+
+            else:
+                has_changed = True
 
         self._syntax_tree.classes = opt_class
+
+        if has_changed:
+            self._remove_unused()
 
 
 
@@ -165,7 +188,7 @@ class OptimizeNodes:
 
         for arg in call_node.args:
             self._handle_expression(arg)
-                
+
         match call_node:
             case FuncCallNode():
                 self._func_use[call_node.name] = True
@@ -236,10 +259,7 @@ class OptimizeNodes:
 
 if __name__ == "__main__":
     path =  "./test_programs/"
-    #program = "faculty_function.lmu"
-    #program = "faculty_class.lmu"
-    #program = "car.lmu"
-    program = "program.lmu"
+    program = "optimization_test.lmu"
     lexer = Lexer(path + program)
     tokens = lexer.get_tokens()
     parser = Parser(tokens)

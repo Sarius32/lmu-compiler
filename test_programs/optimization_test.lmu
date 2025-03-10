@@ -1,4 +1,13 @@
 class RemoveClass {
+    int size = 0;
+
+    method getSize() {
+        return this.size;
+    }
+
+}
+
+class RemoveMethods {
     int color = 0;
     int number = 0;
     int size = 0;
@@ -19,7 +28,7 @@ class RemoveClass {
         }
         else{
             print(n);
-            return this.count(n-1) +1;
+            return this.count_down(n-1) +1;
         }
     }
 }
@@ -32,16 +41,16 @@ function example( n ) {
     return n * example(n - 1);
 }
 
+inst RemoveMethods m1;
 inst RemoveClass r1;
 int a = 0;
 int b = 0;
 
 b = input();
-print(example(b));
+m1.changeColor( 5);
 
-a = input();
-example1.changeColor(a);
+print(1);
 
-for b in (0, a) do {
-    print(example1.color);
-}
+return;
+
+print(555+1+a);

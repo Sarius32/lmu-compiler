@@ -1,187 +1,26 @@
 RST 
-JMP 61 # JUMP to MAIN 
-INC 0 #  Car  : CONSTRUCTOR [instruction can be deleted] 
-LIT 11 
-STO 0 -1 # ATTRIBUTE: wheels 
-LIT 63 
-STO 0 -2 # ATTRIBUTE: color 
-RET 
-INC 0 # METHOD:  addWheel  [instruction can be deleted] 
-INC 1 
+JMP 21 # JUMP to MAIN 
+INC 0 #  RemoveMethods  : CONSTRUCTOR [instruction can be deleted] 
 LIT 0 
-STO 0 3 # VAR: int 0_w 
-LOD 0 -3 
-WRI 
-LOD 0 3 
-LOD 0 -3 
-OPR + 
-STO 0 3 
+STO 0 -1 # ATTRIBUTE: color 
+LIT 0 
+STO 0 -2 # ATTRIBUTE: number 
+LIT 0 
+STO 0 -3 # ATTRIBUTE: size 
+RET 
+INC 0 # METHOD:  changeColor  [instruction can be deleted] 
 LOD 0 -1 
-LOD 0 3 
+LOD 0 -4 
+OPR < 
+JOF 20 
+LOD 0 -1 
+LIT 1 
 OPR + 
 STO 0 -1 
-LOD 0 -1 
-WRI 
-LOD 0 3 
-WRI 
-LOD 0 3 
-STO 0 -4 
-RET 
-RET 
-INC 0 #  Faculty  : CONSTRUCTOR [instruction can be deleted] 
-LIT 1 
-STO 0 -1 # ATTRIBUTE: n 
-RET 
-INC 0 # METHOD:  faculty  [instruction can be deleted] 
-INC 0 
-LOD 0 -1 
-LOD 0 -2 
-OPR * 
-STO 0 -1 
-LOD 0 -2 
-LIT 1 
-OPR = 
-JOF 48 
-LIT 0 
-STO 0 -3 
-RET 
-JMP 60 
-INC 1 
-LOD 0 -2 
-LIT 1 
-OPR - 
-LOD 0 -1 
-CAL 0 34 
-STO 0 -1 
-INC -1 
-INC -1 
-LIT 0 
-STO 0 -3 
-RET 
+JMP 11 
 RET 
 INC 0 # MAIN: [instruction can be deleted] 
-INC 11 
-LIT 7 
-STO 0 3 # VAR: int 0_d 
-LIT 5 
-STO 0 4 # VAR: int 0_b 
-LIT 0 
-STO 0 5 # VAR: int 0_a 
-INC 2 
-CAL 0 2 
-STO 0 6 # VAR: Car 0_c2 
-STO 0 7 # VAR: Car 1_c2 
-LIT 0 
-STO 0 8 # VAR: int 0_e 
-LIT 13 
-STO 0 9 # VAR: int 0_add_w 
-INC 2 
-CAL 0 2 
-STO 0 10 # VAR: Car 0_c1 
-STO 0 11 # VAR: Car 1_c1 
-INC 1 
-CAL 0 30 
-STO 0 12 # VAR: Faculty 0_fac 
-LIT 0 
-STO 0 13 # VAR: int 0_loop_var 
-LIT 6 
-LOD 0 3 
-LIT 13 
-OPR - 
-LIT 2 
-OPR / 
-OPR + 
-STO 0 5 
-LOD 0 6 
 LIT 1 
-OPR + 
-STO 0 8 
-LOD 0 8 
-LIT 11 
-OPR > 
-JOT 107 
-LOD 0 8 
-LIT 6 
-OPR + 
-STO 0 8 
-JMP 109 
-LIT 555 
-STO 0 8 
-LOD 0 8 
 WRI 
-LOD 0 8 
-LIT 555 
-OPR = 
-JOF 126 
-INC 1 
-LOD 0 9 
-LOD 0 7 
-LOD 0 6 
-CAL 0 8 
-STO 0 6 
-STO 0 7 
-INC -1 
-INC -1 
-LIT 3333333332 
-WRI 
-LOD 0 7 
-WRI 
-LOD 0 6 
-WRI 
-LOD 0 10 
-WRI 
-LOD 0 9 
-LOD 0 10 
-OPR < 
-JOF 143 
-LOD 0 10 
-LIT 5 
-OPR - 
-STO 0 10 
-LOD 0 10 
-WRI 
-JMP 132 
-INC 1 
-LIT 6 
-LOD 0 12 
-CAL 0 34 
-STO 0 12 
-INC -1 
-INC -1 
-LOD 0 12 
-WRI 
-LIT 100000000001 
-WRI 
-LOD 0 8 
-WRI 
-LIT 0 
-STO 0 13 
-LOD 0 13 
-LOD 0 8 
-OPR < 
-JOF 182 
-LOD 0 13 
-LIT 25 
-OPR / 
-STO 0 5 
-LOD 0 13 
-LIT 25 
-LOD 0 5 
-OPR * 
-OPR - 
-STO 0 4 
-LOD 0 4 
-LIT 0 
-OPR = 
-JOF 178 
-LOD 0 13 
-WRI 
-LOD 0 13 
-LIT 1 
-OPR + 
-JMP 157 
-LOD 0 13 
-LIT 1 
-OPR - 
-STO 0 13 
+HLT 
 HLT 

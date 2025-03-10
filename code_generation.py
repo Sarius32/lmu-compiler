@@ -104,6 +104,8 @@ class CodeGenerator:
     #region general (declare, assign, write)
 
     def _declare_variables(self, var_list: list[VariableDefNode], store_var: dict[str, VariableStore]):
+        if len(var_list) == 0:
+            return
         
         #Make Space vor Variables
         inc_variable_space = self._add_instruction_line(INCREMENT, [])
