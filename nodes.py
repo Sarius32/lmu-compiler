@@ -52,9 +52,9 @@ class InvertNode(Node):
 
 @dataclass
 class ComparisonNode(Node):
-    left: Expression | InvertNode
+    left: Expression
     operation: Operator
-    right: Expression | InvertNode
+    right: Expression
 
     def get_pre_evaluated(self):
         op_dict = {
@@ -199,7 +199,7 @@ class WriteNode(Node):
 
 @dataclass
 class IfThenElseNode(Node):
-    condition: ComparisonNode
+    condition: ComparisonNode | InvertNode
     then: list[Statement]
     alternative: list[Statement]
 
@@ -251,7 +251,7 @@ class ForLoop(Node):
 
 @dataclass
 class WhileNode(Node):
-    condition: ComparisonNode
+    condition: ComparisonNode | InvertNode
     do: list[Statement]
 
     def get_pre_evaluated(self):
